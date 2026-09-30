@@ -7,6 +7,7 @@ import {
   OPT_TRANS_AZUREAI,
   OPT_TRANS_BAIDU,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_CHARLIE_AUTO,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
@@ -40,6 +41,7 @@ import { browser, isOptions } from "../libs/browser";
 import { isGm } from "../libs/client";
 
 const API_ICON_FILES = {
+  [OPT_TRANS_CHARLIE_AUTO]: "BuiltinAI.svg",
   [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
   [OPT_TRANS_GOOGLE]: "Google.svg",
   [OPT_TRANS_GOOGLE_2]: "Google.svg",

@@ -16,6 +16,7 @@ import {
   normalizeApiModelListUrls,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_CHARLIE_AUTO,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_CEREBRAS,
@@ -37,8 +38,8 @@ import {
   OPT_TRANS_ZAI,
 } from "./api";
 
-test("uses local MTranServer as the fallback default API", () => {
-  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_MTRAN);
+test("uses Charlie Translation Router V2 as the fallback default API", () => {
+  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_CHARLIE_AUTO);
 });
 
 test("includes Microsoft in the built-in API list", () => {
@@ -53,12 +54,37 @@ test("enables only local/native translators while retaining every preset", () =>
   );
   expect(
     DEFAULT_API_LIST.filter((api) => !api.isDisabled).map((api) => api.apiType)
-  ).toEqual([OPT_TRANS_BUILTINAI, OPT_TRANS_MTRAN]);
+  ).toEqual([OPT_TRANS_CHARLIE_AUTO]);
+  expect(API_SPE_TYPES.local.has(OPT_TRANS_CHARLIE_AUTO)).toBe(true);
+  expect(API_SPE_TYPES.local.has(OPT_TRANS_BUILTINAI)).toBe(true);
+  expect(API_SPE_TYPES.local.has(OPT_TRANS_MTRAN)).toBe(true);
   expect(
     DEFAULT_API_LIST.filter((api) => api.isDisabled).every(
       (api) => api.sortOrder === 999
     )
   ).toBe(true);
+});
+
+test("classifies Translation Router V2 as local-only and keeps OpenAI opt-in", () => {
+  const auto = DEFAULT_API_LIST.find(
+    (api) => api.apiType === OPT_TRANS_CHARLIE_AUTO
+  );
+  const openai = DEFAULT_API_LIST.find(
+    (api) => api.apiType === OPT_TRANS_OPENAI
+  );
+
+  expect(auto).toMatchObject({
+    apiSlug: OPT_TRANS_CHARLIE_AUTO,
+    isDisabled: false,
+  });
+  expect(API_SPE_TYPES.local.has(OPT_TRANS_CHARLIE_AUTO)).toBe(true);
+  expect(API_SPE_TYPES.cloudAi.has(OPT_TRANS_OPENAI)).toBe(true);
+  expect(API_SPE_TYPES.local.has(OPT_TRANS_OPENAI)).toBe(false);
+  expect(openai).toMatchObject({
+    model: "gpt-4",
+    isDisabled: true,
+  });
+  expect(OPT_LANGS_TO_SPEC[OPT_TRANS_CHARLIE_AUTO].get("zh-CN")).toBe("zh-CN");
 });
 
 test("configures the official and free Yandex translators", () => {

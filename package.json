@@ -1,7 +1,7 @@
 {
   "name": "kiss-translator",
   "description": "A minimalist bilingual translation Extension & Greasemonkey Script",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
   "dependencies": {
@@ -51,7 +51,7 @@
     "eject": "react-scripts eject",
     "audit:dependencies": "node src/scripts/audit-dependencies.mjs",
     "test:dependency-compatibility": "node src/scripts/test-charlie-dependencies.mjs",
-    "test:charlie": "react-app-rewired test --runInBand --watchAll=false src/libs/securityGuard.test.js src/libs/clipboard.test.js src/libs/inputTranslate.test.js src/apis/trans.mtran.test.js src/config/api.test.js src/config/setting.test.js src/libs/storage.test.js src/libs/sync.test.js src/libs/translatorManager.test.js src/views/Options/Apis.test.js src/views/Options/index.test.js src/views/Options/Navigator.test.js src/views/Popup/index.test.js src/views/Options/Layout.test.js src/views/Options/startup.integration.test.js src/libs/screenshotGeometry.test.js src/libs/screenshotCapture.test.js src/views/Action/ContentFab.test.js src/views/Action/ContentFab.integration.test.js src/libs/screenshotOcr.test.js src/views/Screenshot/index.test.js src/libs/screenshotLocalOcr.test.js src/views/Popup/Header.test.js src/views/Popup/PopupCont.test.js",
+    "test:charlie": "react-app-rewired test --runInBand --watchAll=false src/libs/securityGuard.test.js src/libs/clipboard.test.js src/libs/inputTranslate.test.js src/libs/builtinAI.test.js src/apis/index.test.js src/apis/index.router.test.js src/apis/trans.mtran.test.js src/config/api.test.js src/config/setting.test.js src/libs/storage.test.js src/libs/sync.test.js src/libs/translatorManager.test.js src/views/Options/Apis.test.js src/views/Options/index.test.js src/views/Options/Navigator.test.js src/views/Popup/index.test.js src/views/Options/Layout.test.js src/views/Options/startup.integration.test.js src/libs/screenshotGeometry.test.js src/libs/screenshotCapture.test.js src/views/Action/ContentFab.test.js src/views/Action/ContentFab.integration.test.js src/libs/screenshotOcr.test.js src/views/Screenshot/index.test.js src/libs/screenshotLocalOcr.test.js src/views/Popup/Header.test.js src/views/Popup/PopupCont.test.js",
     "test:screenshot-ocr": "python -m unittest discover -s desktop/tests"
   },
   "eslintConfig": {

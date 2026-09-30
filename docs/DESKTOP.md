@@ -20,9 +20,9 @@ EXE 启动后还会在回环地址提供两个受限服务：
 - `127.0.0.1:8990`：浏览器截图 OCR。
 - `127.0.0.1:8992`：浏览器扩展访问桌面内置翻译的桥接接口；内部随机 Token 与真正的 MTranServer `127.0.0.1:8991` 不暴露给浏览器。
 
-因此更新后的 Charlie 浏览器插件进行整页、划词、字幕或截图翻译时，只需保持 EXE 开启；不再需要另外启动旧的 8989 MTranServer。当前内置模型范围仍是英文→简体中文，其他语言可继续显式配置其他接口。
+Translation Router V2 下，浏览器整页、划词、输入框和字幕翻译会先检测浏览器本地 `Translator` API；当前语言对可用时直接在浏览器本地完成，不要求 EXE 运行。浏览器没有该能力或语言对失败时，才回退到 EXE 的 8992/MTranServer。截图翻译的增强 OCR 仍需要 EXE 的 8990。
 
-关闭 EXE 会关闭 8990/8992 以及它自己启动的 8991 子进程。浏览器检测不到 8992 时会提示先打开 `CharlieTranslate.exe`，不会自动回退到云服务。
+关闭 EXE 会关闭 8990/8992 以及它自己启动的 8991 子进程。如果浏览器本地 Translator 同时不可用，Charlie 会明确提示打开 `CharlieTranslate.exe`；**不会自动回退到云服务**。当前 Desktop 内置 MTran 模型范围仍是英文→简体中文。
 
 ## 缓存与隐私
 
@@ -50,4 +50,4 @@ Windows 快捷键录入使用实际按下的 Ctrl/Alt/Shift 状态，NumLock 不
 
 全局快捷键由独立 Windows 消息线程接收，避免 Tk 主循环提前消耗消息。重复启动会打开已有主窗口，不会建立第二个实例争抢快捷键。主窗口底部先保留操作、路径、进度和状态区域，缩小窗口时仍可看见识字提示与已用时间。
 
-本机当前启动入口为 D:\f\Charlie-Translate-Desktop-V1\CharlieTranslate.exe；可编辑源码为 E:\Projects\charlie-translate。E:\Projects\charlie-translate-audit 是旧审计工作目录，其中 tmp/desktop-env 的构建环境仍用于当前打包，不是当前源码入口。
+便携版启动入口为解压目录中的 `CharlieTranslate.exe`。开发构建应使用安装了固定依赖的 Python 环境；源码目录和构建环境可以分别存放。

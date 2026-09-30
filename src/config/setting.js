@@ -6,7 +6,7 @@
 import { LogLevel } from "../libs/log";
 import {
   DEFAULT_HTTP_TIMEOUT,
-  OPT_TRANS_MTRAN,
+  OPT_TRANS_CHARLIE_AUTO,
   DEFAULT_API_LIST,
   OPT_LANGS_TO,
 } from "./api";
@@ -84,7 +84,7 @@ export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"]; // 触发输入框翻
 export const DEFAULT_INPUT_RULE = {
   transOpen: true, // 是否开启输入框翻译功能
   blacklist: "", // 禁用输入框翻译的域名列表
-  apiSlug: OPT_TRANS_MTRAN, // 默认使用的翻译服务 API 标识
+  apiSlug: OPT_TRANS_CHARLIE_AUTO, // 默认使用 Charlie Translation Router V2
   fromLang: "auto", // 默认自动检测输入源语言
   toLang: "en", // 默认翻译目标语言为英文
   triggerShortcut: DEFAULT_INPUT_SHORTCUT, // 快捷键组合
@@ -130,7 +130,7 @@ export const OPT_SKIPLANGS_SELECTION = [
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
-  apiSlugs: [OPT_TRANS_MTRAN], // 启用的翻译 API (支持多选)
+  apiSlugs: [OPT_TRANS_CHARLIE_AUTO], // 默认本地自动路由，可在设置中增加其他接口
   singleWordNoTrans: false, // 划词为单个单词时是否仅查询词典，不请求整句翻译服务
   autoFavWord: false, // 打开划词翻译框时自动收藏英文单词
   fromLang: "auto",
@@ -176,7 +176,7 @@ export const OPT_ENHANCE_MOBILE_OFF = "mobile_off"; // 移动端浏览器中默�
 // --- 字幕翻译核心配置 ---
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
-  apiSlug: OPT_TRANS_MTRAN, // 默认的字幕翻译接口
+  apiSlug: OPT_TRANS_CHARLIE_AUTO, // 默认字幕使用本地自动路由
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
   forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
   chunkLength: 1000, // 新配置默认使用更短 AI 分块；已保存的用户值仍由存储配置优先覆盖
@@ -260,6 +260,7 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
 // --- 全局默认设置对象，存储于 local storage ---
 export const DEFAULT_SETTING = {
   version: CURRENT_SETTINGS_VERSION,
+  translationRouterVersion: 2,
   darkMode: "auto", // 主题外观模式 ("light" 浅色, "dark" 深色, "auto" 跟随浏览器系统)
   uiLang: "en", // 插件设置面板界面的显示语言
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)

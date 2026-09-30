@@ -26,13 +26,13 @@ jest.mock("../libs/docInfo", () => ({
 describe("Charlie MTranServer integration", () => {
   const api = DEFAULT_API_LIST.find((item) => item.apiType === OPT_TRANS_MTRAN);
 
-  test("ships an enabled local-first /kiss preset", () => {
+  test("ships the Desktop /kiss preset as an explicit local engine", () => {
     expect(api).toMatchObject({
       apiSlug: OPT_TRANS_MTRAN,
       apiName: OPT_TRANS_MTRAN,
       url: "http://127.0.0.1:8992/kiss",
       useBatchFetch: true,
-      isDisabled: false,
+      isDisabled: true,
     });
   });
 

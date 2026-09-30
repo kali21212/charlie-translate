@@ -1,13 +1,13 @@
 # Charlie Translate｜查理翻译
 
-以本机翻译和隐私保护为重点的网页双语、划词翻译扩展。新安装默认使用本地 MTranServer，云服务需要主动启用，已有设置会保留。
+以本机翻译和隐私保护为重点的网页双语、划词翻译扩展。新安装默认使用 **Charlie Translation Router V2**：优先浏览器本地 Translator API，不可用时回退 Charlie Desktop / MTranServer；云服务只在用户主动选择时使用。架构和迁移边界见 [Translation Router V2](docs/TRANSLATION_ROUTER_V2.md)。
 
 ## 功能
 
 - 网页双语对照、划词翻译、鼠标悬停翻译和输入框翻译。
 - YouTube 字幕翻译、站点规则和术语词典。
 - 浏览器「截图翻译」：框选网页区域后自动本地 OCR 并翻译；截图只作为内存临时输入，不保存、不做通用标注，见[使用说明](docs/SCREENSHOT.md)。
-- 本地 MTranServer 接口，以及可选的云翻译和 AI 接口。
+- Charlie Translation Router V2、本地 MTranServer，以及用户主动选择的 OpenAI/GPT、Gemini、Claude 等云 AI 接口。
 - 敏感页面的输入翻译与自动剪贴板读取保护。
 - 保留上游同步路径，使用测试、依赖审计和 CI 验证修改。
 
@@ -22,11 +22,12 @@ Charlie 当前以源码和本地 Chrome 构建交付。
 1. 安装 Node.js 22 和 Corepack，运行 `corepack pnpm@10.15.1 install --frozen-lockfile`。
 2. 运行 `corepack pnpm@10.15.1 build:chrome`。
 3. 在 `chrome://extensions` 打开开发者模式，选择“加载已解压的扩展程序”，加载 `build/chrome`。
-4. 同时打开完整解压的 Charlie Translate Desktop。插件默认 MTranServer 地址为 `http://127.0.0.1:8992/kiss`，直接复用 EXE 内置的离线 MTranServer 与英文→简体中文模型，不需要单独启动 8989 服务或填写 Key。
-5. 打开普通网页，使用 `Alt+Q` 网页翻译、划词翻译或字幕翻译。EXE 未运行时会明确提示先打开 `CharlieTranslate.exe`，不会自动切换到云服务。
-6. 需要其他模型或自建 MTranServer 时仍可显式配置自定义回环地址；已有自定义 URL/Key 不会被自动覆盖。
+4. 默认翻译接口选择 **CharlieAuto**。浏览器运行时如果提供本地 `Translator` API，Charlie 直接使用浏览器管理的本地语言模型；某语言对不可用时才连接同机 `http://127.0.0.1:8992` 的 Charlie Desktop。
+5. 因此支持 Translator API 的 Chrome/Chromium 环境可以不依赖 EXE 完成本地翻译；Thorium 等 Chromium fork 只做真实 capability detection，不按浏览器名称猜测。需要 Desktop fallback、增强 OCR 或桌面截图时打开 `CharlieTranslate.exe`。
+6. 两级本地引擎都不可用时会明确报错，**不会自动把文本发送到 OpenAI/Gemini/Claude 等云端**。云 AI 需在“翻译接口”里主动启用并选择。
+7. 需要自建 MTranServer 或其他接口时可显式配置；已有自定义 URL/Key 和具体网站规则不会被强制覆盖。
 
-新安装默认关闭云翻译接口、在线词典/联想、远程规则注入、更新检查及自动剪贴板翻译。Chrome 内置翻译模型的可用性取决于浏览器，可手动选择。已有云服务、同步及其他配置不会被强制覆盖。
+新安装默认只启用 CharlieAuto；在线词典/联想、远程规则注入、更新检查及自动剪贴板翻译仍保持 opt-in。OpenAI 等云端接口默认关闭，保留已有模型配置，用户可主动选择账户支持的模型。
 
 ## 隐私边界和验证
 

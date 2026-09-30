@@ -10,8 +10,9 @@ import {
   OPT_LANGS_SPEC_DEFAULT,
   API_SPE_TYPES,
   DEFAULT_API_SETTING,
-  MSG_BUILTINAI_DETECT,
-  MSG_BUILTINAI_TRANSLATE,
+  DEFAULT_API_LIST,
+  OPT_TRANS_CHARLIE_AUTO,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_QWENMT,
   URL_CACHE_SUBTITLE,
@@ -44,7 +45,6 @@ import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
 import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
-import { fnPolyfill } from "../libs/fetch";
 import { normalizeHttpTimeout } from "../libs/request";
 import { getFetchPool } from "../libs/pool";
 import { trustedTypesHelper } from "../libs/trustedTypes";
@@ -569,12 +569,9 @@ export const apiBuiltinAIDetect = async (text) => {
     return "";
   }
 
-  // 跨运行环境调用 chrome.translation.canDetectLanguage() 垫片包装
-  const [lang, error] = await fnPolyfill({
-    fn: chromeDetect,
-    msg: MSG_BUILTINAI_DETECT,
-    text,
-  });
+  // Translator/LanguageDetector are exposed to extension document/content
+  // contexts but not MV3 service workers, so execute in the caller context.
+  const [lang, error] = await chromeDetect({ text });
   if (!error) {
     return lang;
   }
@@ -622,7 +619,13 @@ const resolveBuiltinAISourceLang = async (text) => {
  * 浏览器内置 Gemini Nano AI 翻译 API。
  * 整合了超时管理与内置并发频率池（FetchPool），保证前台调用不易发生死锁。
  */
-const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
+const apiBuiltinAITranslate = async ({
+  text,
+  from,
+  to,
+  apiSetting,
+  localOnly,
+}) => {
   if (!isBuiltinAIAvailable) {
     return ["", true];
   }
@@ -631,15 +634,10 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
   // 1. 获取限制并发的频率控制池，保障不频繁打爆本地 AI 进程
   const fetchPool = getFetchPool(fetchInterval, fetchLimit);
 
-  // 2. 执行带有超时机制 (withTimeout) 的本地 AI 翻译
+  // 2. Execute the browser's local Translator API in this document/content
+  // context. MV3 service workers do not expose Translator.
   const result = await withTimeout(
-    fetchPool.push(fnPolyfill, {
-      fn: chromeTranslate,
-      msg: MSG_BUILTINAI_TRANSLATE,
-      text,
-      from,
-      to,
-    }),
+    fetchPool.push((args) => chromeTranslate(args), { text, from, to }),
     normalizeHttpTimeout(httpTimeout)
   );
 
@@ -651,6 +649,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
   if (error) {
     // 浏览器内置检测失败时，使用用户配置的检测服务解析具体源语言并重试一次。
     if (
+      !localOnly &&
       from === "auto" &&
       String(error).includes("Automatic detection of source language failed")
     ) {
@@ -659,9 +658,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
         const mappedFrom =
           OPT_LANGS_FROM_SPEC[OPT_TRANS_BUILTINAI].get(deLang) || deLang;
         const retry = await withTimeout(
-          fetchPool.push(fnPolyfill, {
-            fn: chromeTranslate,
-            msg: MSG_BUILTINAI_TRANSLATE,
+          fetchPool.push((args) => chromeTranslate(args), {
             text,
             from: mappedFrom,
             to,
@@ -683,6 +680,77 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
   }
 
   return [trText, srLang];
+};
+
+const CHARLIE_LOCAL_ROUTER_ORDER = [OPT_TRANS_BUILTINAI, OPT_TRANS_MTRAN];
+
+const getRouterProviderSetting = (apiType) =>
+  DEFAULT_API_LIST.find((api) => api.apiType === apiType);
+
+/**
+ * Charlie Translation Router V2.
+ * Privacy invariant: this router only tries local engines and never falls
+ * through to a cloud provider without an explicit user selection.
+ */
+const apiCharlieAutoTranslate = async ({
+  text,
+  fromLang,
+  toLang,
+  glossary,
+  docInfo,
+  translateVariants,
+  textFormat,
+  usePool,
+  signal,
+  capture,
+}) => {
+  const errors = [];
+
+  for (const candidateType of CHARLIE_LOCAL_ROUTER_ORDER) {
+    if (candidateType === OPT_TRANS_BUILTINAI && !isBuiltinAIAvailable) {
+      errors.push("BuiltinAI: 浏览器未提供本地 Translator API");
+      continue;
+    }
+
+    const candidate = getRouterProviderSetting(candidateType);
+    if (!candidate) {
+      errors.push(`${candidateType}: 未找到本地引擎配置`);
+      continue;
+    }
+
+    try {
+      const result = await apiTranslate({
+        text,
+        fromLang,
+        toLang,
+        apiSetting: { ...candidate, isDisabled: false },
+        glossary,
+        docInfo,
+        useCache: false,
+        localOnly: true,
+        usePool,
+        translateVariants,
+        textFormat,
+        signal,
+        capture,
+      });
+      if (signal?.aborted) {
+        throw new DOMException("The operation was aborted.", "AbortError");
+      }
+      return {
+        ...result,
+        routerEngine: candidateType,
+      };
+    } catch (error) {
+      if (error?.name === "AbortError" || signal?.aborted) throw error;
+      errors.push(`${candidateType}: ${error?.message || String(error)}`);
+    }
+  }
+
+  throw new Error(
+    "Charlie 本地翻译不可用。浏览器本地 Translator API 不可用时，请打开 CharlieTranslate.exe。不会自动切换到云端。\n" +
+      errors.join("\n")
+  );
 };
 
 /**
@@ -717,6 +785,7 @@ export const apiTranslate = async ({
   textFormat = "text",
   signal,
   capture,
+  localOnly = false,
 }) => {
   if (!text) {
     throw new Error("The text cannot be empty.");
@@ -780,13 +849,30 @@ export const apiTranslate = async ({
 
   // 2. 缓存未命中，分发执行翻译请求
   let translation = [];
-  if (apiType === OPT_TRANS_BUILTINAI) {
-    // 2.1 浏览器本地 AI 翻译路径
+  let routerEngine = "";
+  if (apiType === OPT_TRANS_CHARLIE_AUTO) {
+    const routed = await apiCharlieAutoTranslate({
+      text,
+      fromLang,
+      toLang,
+      glossary,
+      docInfo,
+      translateVariants,
+      textFormat,
+      usePool,
+      signal,
+      capture,
+    });
+    translation = [routed.trText, routed.srLang || ""];
+    routerEngine = routed.routerEngine || "";
+  } else if (apiType === OPT_TRANS_BUILTINAI) {
+    // 2.1 浏览器本地 Translator API 翻译路径
     translation = await apiBuiltinAITranslate({
       text,
       from,
       to,
       apiSetting,
+      localOnly,
     });
   } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
     // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
@@ -907,10 +993,22 @@ export const apiTranslate = async ({
 
   // 4. 将成功的结果写入本地网络缓存中
   if (useCache) {
-    putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang, srCode });
+    putHttpCachePolyfill(cacheInput, null, {
+      trText,
+      isSame,
+      srLang,
+      srCode,
+      ...(routerEngine ? { routerEngine } : {}),
+    });
   }
 
-  return { trText, srLang, srCode, isSame };
+  return {
+    trText,
+    srLang,
+    srCode,
+    isSame,
+    ...(routerEngine ? { routerEngine } : {}),
+  };
 };
 
 /**

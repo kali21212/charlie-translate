@@ -22,8 +22,6 @@ import {
   MSG_INJECT_JS,
   MSG_INJECT_CSS,
   MSG_UPDATE_CSP,
-  MSG_BUILTINAI_DETECT,
-  MSG_BUILTINAI_TRANSLATE,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
@@ -65,7 +63,6 @@ import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
-import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
@@ -761,8 +758,6 @@ const messageHandlers = {
   [MSG_UPDATE_CSP]: (args) => updateCspRules(args), // 触发 CSP 重写规则变更
   [MSG_CONTEXT_MENUS]: (args) => addContextMenus(args), // 切换右键菜单样式
   [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(), // 获取 manifest 注册的所有快捷键
-  [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args), // 触发 Chrome 127+ 内置 Gemini AI 语言检测
-  [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args), // 触发 Chrome 内置 AI 翻译接口
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args), // 修改运行时的日志记录等级
   [MSG_CLEAR_CACHES]: () => tryClearCaches(), // 清空翻译缓存
   [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(), // 打开独立翻译小窗口

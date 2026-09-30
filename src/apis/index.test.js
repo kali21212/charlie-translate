@@ -4,7 +4,10 @@ jest.mock("query-string", () => ({
 
 jest.mock("../libs/fetch", () => ({
   fetchData: jest.fn(),
-  fnPolyfill: jest.fn(),
+}));
+jest.mock("../libs/builtinAI", () => ({
+  chromeDetect: jest.fn(),
+  chromeTranslate: jest.fn(),
 }));
 
 jest.mock("../libs/browser", () => ({
@@ -32,6 +35,7 @@ jest.mock("../libs/pool", () => ({
 
 jest.mock("../libs/storage", () => ({
   getSetting: jest.fn(),
+  getSettingWithDefault: jest.fn(),
 }));
 
 jest.mock("../libs/request", () => ({
@@ -77,7 +81,8 @@ jest.mock("./trans", () => ({
 
 import { apiDict, apiSubtitle, apiTranslate } from "./index";
 import { handleDict, handleSubtitle, handleTranslate } from "./trans";
-import { fetchData, fnPolyfill } from "../libs/fetch";
+import { fetchData } from "../libs/fetch";
+import { chromeTranslate } from "../libs/builtinAI";
 import { getSetting } from "../libs/storage";
 import { withTimeout } from "../libs/utils";
 import { getBatchQueue } from "../libs/batchQueue";
@@ -241,7 +246,7 @@ describe("apiTranslate BuiltinAI timeout", () => {
   });
 
   test("converts second-based timeout before calling withTimeout", async () => {
-    fnPolyfill.mockResolvedValueOnce(["translated text", "en", ""]);
+    chromeTranslate.mockResolvedValueOnce(["translated text", "en", ""]);
 
     await apiTranslate({
       text: "hello",
@@ -255,7 +260,7 @@ describe("apiTranslate BuiltinAI timeout", () => {
   });
 
   test("keeps legacy millisecond timeout before calling withTimeout", async () => {
-    fnPolyfill.mockResolvedValueOnce(["translated text", "en", ""]);
+    chromeTranslate.mockResolvedValueOnce(["translated text", "en", ""]);
 
     await apiTranslate({
       text: "hello",
@@ -269,7 +274,7 @@ describe("apiTranslate BuiltinAI timeout", () => {
   });
 
   test("includes BuiltinAI error reason in thrown message", async () => {
-    fnPolyfill.mockResolvedValueOnce([
+    chromeTranslate.mockResolvedValueOnce([
       "",
       "auto",
       "Automatic detection of source language failed: low confidence",
@@ -291,7 +296,7 @@ describe("apiTranslate BuiltinAI timeout", () => {
   test("falls back to the configured detection service when the built-in detector is unavailable", async () => {
     getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
     fetchData.mockResolvedValueOnce({ error: 0, lan: "en" });
-    fnPolyfill
+    chromeTranslate
       .mockResolvedValueOnce([
         "",
         "auto",
@@ -312,15 +317,15 @@ describe("apiTranslate BuiltinAI timeout", () => {
       expect.anything(),
       { useCache: true }
     );
-    expect(fnPolyfill.mock.calls[1][0].from).toBe("en");
+    expect(chromeTranslate.mock.calls[1][0].from).toBe("en");
     expect(translation.trText).toBe("translated text");
     expect(translation.srLang).toBe("en");
-    expect(fnPolyfill).toHaveBeenCalledTimes(2);
+    expect(chromeTranslate).toHaveBeenCalledTimes(2);
   });
 
   test("keeps the original error when no fallback detector resolves a language", async () => {
     getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
-    fnPolyfill.mockResolvedValueOnce([
+    chromeTranslate.mockResolvedValueOnce([
       "",
       "auto",
       "Automatic detection of source language failed: LanguageDetector unavailable",
@@ -338,13 +343,13 @@ describe("apiTranslate BuiltinAI timeout", () => {
     ).rejects.toThrow(
       "apiBuiltinAITranslate got error: Automatic detection of source language failed: LanguageDetector unavailable"
     );
-    expect(fnPolyfill).toHaveBeenCalledTimes(1);
+    expect(chromeTranslate).toHaveBeenCalledTimes(1);
   });
 
   test("surfaces the concrete-language retry error", async () => {
     getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
     fetchData.mockResolvedValueOnce({ error: 0, lan: "en" });
-    fnPolyfill
+    chromeTranslate
       .mockResolvedValueOnce([
         "",
         "auto",
@@ -363,13 +368,13 @@ describe("apiTranslate BuiltinAI timeout", () => {
     ).rejects.toThrow(
       "apiBuiltinAITranslate got error: Language pair unavailable"
     );
-    expect(fnPolyfill).toHaveBeenCalledTimes(2);
+    expect(chromeTranslate).toHaveBeenCalledTimes(2);
   });
 
   test("reports a null concrete-language retry result", async () => {
     getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
     fetchData.mockResolvedValueOnce({ error: 0, lan: "en" });
-    fnPolyfill
+    chromeTranslate
       .mockResolvedValueOnce([
         "",
         "auto",

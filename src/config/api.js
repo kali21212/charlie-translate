@@ -48,7 +48,8 @@ export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
 export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 
 // --- 翻译服务提供商标识常量 ---
-export const OPT_TRANS_BUILTINAI = "BuiltinAI"; // 浏览器内置 Gemini AI 翻译
+export const OPT_TRANS_CHARLIE_AUTO = "CharlieAuto"; // Charlie Translation Router V2：仅本地自动路由
+export const OPT_TRANS_BUILTINAI = "BuiltinAI"; // 浏览器内置 Translator API 本地翻译
 export const OPT_TRANS_GOOGLE = "Google"; // 谷歌翻译服务
 export const OPT_TRANS_GOOGLE_2 = "Google2"; // 谷歌翻译 pa 网页 API (支持大批量 HTML)
 export const OPT_TRANS_GOOGLE_CLOUD = "GoogleCloud"; // Google Cloud Translation Basic API
@@ -86,6 +87,7 @@ export const OPT_TRANS_MTRAN = "MTranServer"; // Charlie local-first offline tra
 
 // 内置支持的翻译引擎
 export const OPT_ALL_TRANS_TYPES = [
+  OPT_TRANS_CHARLIE_AUTO,
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
@@ -138,6 +140,7 @@ export const API_SPE_TYPES = {
   builtin: new Set(OPT_ALL_TRANS_TYPES),
   // 机器翻译引擎（传统查表/神经网络翻译，不需要大型语言模型）
   machine: new Set([
+    OPT_TRANS_CHARLIE_AUTO,
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_DEEPLFREE,
     OPT_TRANS_BAIDU,
@@ -266,6 +269,30 @@ export const API_SPE_TYPES = {
     OPT_TRANS_APIMART,
   ]),
   // 官方推荐/赞助商的翻译服务
+  local: new Set([
+    OPT_TRANS_CHARLIE_AUTO,
+    OPT_TRANS_BUILTINAI,
+    OPT_TRANS_MTRAN,
+    OPT_TRANS_OLLAMA,
+  ]),
+  cloudAi: new Set([
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_OPENCODEGO,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
+    OPT_TRANS_REQUESTY,
+  ]),
   sponsors: new Set([OPT_TRANS_EPHONEAI, OPT_TRANS_APIMART]),
   // 暗黑模式下图标反色
   darkIcon: new Set([
@@ -1011,6 +1038,7 @@ export const OPT_LANGS_SPEC_DEFAULT_UC = new Map(
   OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()])
 );
 export const OPT_LANGS_TO_SPEC = {
+  [OPT_TRANS_CHARLIE_AUTO]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_BUILTINAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["zh-CN", "zh-Hans"],
@@ -1576,6 +1604,12 @@ const defaultAiApiOpts = {
 };
 
 const defaultApiOpts = {
+  [OPT_TRANS_CHARLIE_AUTO]: {
+    ...defaultApi,
+    fetchLimit: 6,
+    fetchInterval: 20,
+    httpTimeout: 45,
+  },
   [OPT_TRANS_BUILTINAI]: defaultApi,
   [OPT_TRANS_GOOGLE]: {
     ...defaultApi,
@@ -1777,17 +1811,15 @@ const defaultApiOpts = {
   },
 };
 
-const DEFAULT_ENABLED_API_TYPES = new Set([
-  OPT_TRANS_MTRAN,
-  OPT_TRANS_BUILTINAI,
-]);
+const DEFAULT_ENABLED_API_TYPES = new Set([OPT_TRANS_CHARLIE_AUTO]);
 
 // Built-in presets remain available for explicit activation in settings.
 export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) =>
   normalizeApiThinkingSetting({
     ...defaultApiOpts[apiType],
     apiSlug: apiType,
-    apiName: apiType,
+    apiName:
+      apiType === OPT_TRANS_CHARLIE_AUTO ? "Charlie Auto · Local" : apiType,
     apiType,
     isDisabled: !DEFAULT_ENABLED_API_TYPES.has(apiType),
     sortOrder: DEFAULT_ENABLED_API_TYPES.has(apiType) ? 0 : 999,
@@ -1851,7 +1883,7 @@ export function normalizeApiModelListUrls(transApis = []) {
   return hasChanges ? nextApis : transApis;
 }
 
-export const DEFAULT_API_TYPE = OPT_TRANS_MTRAN;
+export const DEFAULT_API_TYPE = OPT_TRANS_CHARLIE_AUTO;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
   (a) => a.apiType === DEFAULT_API_TYPE
 );
