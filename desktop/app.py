@@ -311,7 +311,10 @@ class App:
         path = filedialog.asksaveasfilename(defaultextension=".png", initialfile="Charlie-screenshot.png", filetypes=[("PNG", "*.png")])
         if path:
             try:
-                if path.startswith("\\\\") or ctypes.windll.kernel32.GetDriveTypeW(str(Path(path).anchor)) == 4:
+                drive_type = ctypes.windll.kernel32.GetDriveTypeW
+                drive_type.argtypes = [ctypes.c_wchar_p]
+                drive_type.restype = ctypes.c_uint
+                if path.startswith("\\\\") or drive_type(str(Path(path).anchor)) == 4:
                     raise ValueError("仅允许保存到本机磁盘，不保存到网络共享")
                 self.image.save(path, format="PNG")
                 self.status.set("截图已保存到你选择的本机文件。")

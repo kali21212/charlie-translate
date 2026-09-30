@@ -64,7 +64,14 @@ class LocalApiTests(unittest.TestCase):
 
     def test_webpages_wrong_host_and_missing_header_never_reach_engine(self):
         for headers in [{},{"X-Charlie-OCR":"1","Origin":"https://example.com"},{"X-Charlie-OCR":"1","Host":"evil.example"}]:
-            self.assertEqual(self.post(headers,{"image":"x"})[0],403)
+            try:
+                self.assertEqual(self.post(headers,{"image":"x"})[0],403)
+            except (ConnectionAbortedError, ConnectionResetError) as error:
+                # Closing an unauthorized POST without reading its body can reset
+                # Windows TCP. Both outcomes must still leave the engine untouched.
+                if sys.platform != "win32" or error.winerror not in (10053,10054):
+                    raise
+            self.assertEqual(self.calls,[])
         self.assertEqual(self.calls,[])
 
     def test_valid_local_png_and_invalid_json_object(self):
