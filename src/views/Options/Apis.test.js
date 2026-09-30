@@ -2060,6 +2060,23 @@ describe("Apis Yandex fields", () => {
   );
 });
 
+describe("MTranServer local settings", () => {
+  test("exposes endpoint and optional token controls", async () => {
+    const view = await renderApis(
+      createApi({
+        apiSlug: "MTranServer",
+        apiType: "MTranServer",
+        apiName: "MTranServer",
+        url: "http://localhost:8989/kiss",
+        key: "",
+      })
+    );
+    expect(getInput(view.container, "url")).not.toBeNull();
+    expect(getInput(view.container, "key")).not.toBeNull();
+    view.unmount();
+  });
+});
+
 describe("Apis static thinking normalization", () => {
   afterEach(() => {
     jest.clearAllMocks();

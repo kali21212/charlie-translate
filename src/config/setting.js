@@ -5,10 +5,8 @@
 
 import { LogLevel } from "../libs/log";
 import {
-  OPT_DICT_BING,
-  OPT_SUG_YOUDAO,
   DEFAULT_HTTP_TIMEOUT,
-  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_MTRAN,
   DEFAULT_API_LIST,
   OPT_LANGS_TO,
 } from "./api";
@@ -86,7 +84,7 @@ export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"]; // 触发输入框翻
 export const DEFAULT_INPUT_RULE = {
   transOpen: true, // 是否开启输入框翻译功能
   blacklist: "", // 禁用输入框翻译的域名列表
-  apiSlug: OPT_TRANS_MICROSOFT, // 默认使用的翻译服务 API 标识
+  apiSlug: OPT_TRANS_MTRAN, // 默认使用的翻译服务 API 标识
   fromLang: "auto", // 默认自动检测输入源语言
   toLang: "en", // 默认翻译目标语言为英文
   triggerShortcut: DEFAULT_INPUT_SHORTCUT, // 快捷键组合
@@ -132,7 +130,7 @@ export const OPT_SKIPLANGS_SELECTION = [
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
-  apiSlugs: [OPT_TRANS_MICROSOFT], // 启用的翻译 API (支持多选)
+  apiSlugs: [OPT_TRANS_MTRAN], // 启用的翻译 API (支持多选)
   singleWordNoTrans: false, // 划词为单个单词时是否仅查询词典，不请求整句翻译服务
   autoFavWord: false, // 打开划词翻译框时自动收藏英文单词
   fromLang: "auto",
@@ -154,8 +152,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   skipLangs: [], // 忽略的语言：默认为空，检测到列表内语言时不弹窗
 
   // extStyles: "", // 附加样式
-  enDict: OPT_DICT_BING, // 默认英文网络词典数据源
-  enSug: OPT_SUG_YOUDAO, // 英文输入联想建议源
+  enDict: "-", // 默认关闭在线英文词典
+  enSug: "-", // 默认关闭在线输入联想
   aiDictApiSlug: "-",
   aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
 };
@@ -178,7 +176,7 @@ export const OPT_ENHANCE_MOBILE_OFF = "mobile_off"; // 移动端浏览器中默�
 // --- 字幕翻译核心配置 ---
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
-  apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口
+  apiSlug: OPT_TRANS_MTRAN, // 默认的字幕翻译接口
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
   forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
   chunkLength: 1000, // 新配置默认使用更短 AI 分块；已保存的用户值仍由存储配置优先覆盖
@@ -272,9 +270,9 @@ export const DEFAULT_SETTING = {
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 接口请求超时时间
   clearCache: false, // 每次浏览器重启时，是否自动清空翻译结果的本地网络缓存
   autoTranslateClipboard: false, // 打开文本翻译面板或重新聚焦独立窗口时，是否自动翻译剪贴板文本
-  checkUpdate: true, // 打开设置页面时是否自动检查是否有新版本
+  checkUpdate: false, // 打开设置页面时是否自动检查是否有新版本
   popupDefaultView: OPT_POPUP_DEFAULT_VIEW_PAGE, // 工具栏弹窗打开时默认显示的界面
-  injectRules: true, // 页面加载时是否自动匹配并注入云端订阅的翻译规则
+  injectRules: false, // 页面加载时是否自动匹配并注入云端订阅的翻译规则
   fabClickAction: 0, // 工具栏悬浮球按钮双击或单击的默认响应行为 (如开启/关闭翻译)
   // injectWebfix: true, // 是否注入修复补丁(作废)
   // detectRemote: false, // 是否使用远程语言检测 （从rule移回）

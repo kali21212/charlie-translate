@@ -1,0 +1,411 @@
+{
+  "capturedAt": "2026-09-30",
+  "baseCommit": "1f720ae7af3b779396f5219a1aa721eb8b5661cc",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 11,
+      "moderate": 52,
+      "high": 73,
+      "critical": 0
+    },
+    "dependencies": 1422,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 1422
+  },
+  "uniqueAdvisories": 122,
+  "packages": [
+    {
+      "name": "nth-check",
+      "scope": "build/test",
+      "advisories": ["GHSA-rp65-9cf3-cjxr"],
+      "paths": [
+        ".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo>css-select>nth-check"
+      ]
+    },
+    {
+      "name": "webpack-dev-server",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-9jgg-88mc-972h",
+        "GHSA-4v9v-hfq4-rm2v",
+        "GHSA-79cf-xcqc-c78w",
+        "GHSA-mx8g-39q3-5c79",
+        "GHSA-f5vj-f2hx-8m93",
+        "GHSA-m28w-2pqf-7qgj"
+      ],
+      "paths": [".>react-scripts>webpack-dev-server"]
+    },
+    {
+      "name": "postcss",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-7fh5-64p2-3v2j",
+        "GHSA-qx2v-qp2m-jg93",
+        "GHSA-6g55-p6wh-862q",
+        "GHSA-fxqj-rqcc-2cmp",
+        "GHSA-r28c-9q8g-f849"
+      ],
+      "paths": [
+        ".>react-scripts>resolve-url-loader>postcss",
+        ".>react-scripts>postcss"
+      ]
+    },
+    {
+      "name": "diff",
+      "scope": "build/test",
+      "advisories": ["GHSA-73rr-hh4g-fpgx"],
+      "paths": [
+        ".>react-markdown>remark-parse>mdast-util-from-markdown>uvu>diff"
+      ]
+    },
+    {
+      "name": "jsonpath",
+      "scope": "build/test",
+      "advisories": ["GHSA-6c59-mwgh-r2x6", "GHSA-87r5-mp6g-5w5j"],
+      "paths": [".>react-scripts>bfj>jsonpath"]
+    },
+    {
+      "name": "qs",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-w7fw-mjwx-w883",
+        "GHSA-q8mj-m7cp-5q26",
+        "GHSA-4mjr-xmp4-gh2g"
+      ],
+      "paths": [".>react-scripts>webpack-dev-server>express>qs"]
+    },
+    {
+      "name": "minimatch",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-3ppc-4f35-3m26",
+        "GHSA-7r86-cg39-jmmj",
+        "GHSA-23c5-xmqv-rm74"
+      ],
+      "paths": [
+        ".>bestzip>glob>minimatch",
+        ".>bestzip>archiver>readdir-glob>minimatch",
+        ".>webdav>minimatch"
+      ]
+    },
+    {
+      "name": "rollup",
+      "scope": "build/test",
+      "advisories": ["GHSA-mw96-cpmx-2vgc"],
+      "paths": [".>react-scripts>workbox-webpack-plugin>workbox-build>rollup"]
+    },
+    {
+      "name": "serialize-javascript",
+      "scope": "build/test",
+      "advisories": ["GHSA-5c6j-r48x-rmvq", "GHSA-qj8w-gfj5-8c6v"],
+      "paths": [
+        ".>react-scripts>css-minimizer-webpack-plugin>serialize-javascript",
+        ".>react-scripts>workbox-webpack-plugin>workbox-build>rollup-plugin-terser>serialize-javascript"
+      ]
+    },
+    {
+      "name": "ajv",
+      "scope": "build/test",
+      "advisories": ["GHSA-2g4f-4pwh-qvx6"],
+      "paths": [
+        ".>react-scripts>babel-loader>schema-utils>ajv",
+        ".>react-scripts>@pmmmwh/react-refresh-webpack-plugin>schema-utils>ajv"
+      ]
+    },
+    {
+      "name": "svgo",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-xpqw-6gx7-v673",
+        "GHSA-2p49-hgcm-8545",
+        "GHSA-w27v-7q3p-w38r",
+        "GHSA-4vpr-x523-8j87"
+      ],
+      "paths": [
+        ".>react-scripts>css-minimizer-webpack-plugin>cssnano>cssnano-preset-default>postcss-svgo>svgo",
+        ".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo"
+      ]
+    },
+    {
+      "name": "fast-xml-parser",
+      "scope": "runtime or mixed",
+      "advisories": [
+        "GHSA-8gc5-j5rx-235r",
+        "GHSA-jp2q-39xq-3w4g",
+        "GHSA-gh4j-gqv2-49f6"
+      ],
+      "paths": [".>webdav>fast-xml-parser"]
+    },
+    {
+      "name": "path-to-regexp",
+      "scope": "build/test",
+      "advisories": ["GHSA-37ch-88jc-xwx2"],
+      "paths": [".>react-scripts>webpack-dev-server>express>path-to-regexp"]
+    },
+    {
+      "name": "brace-expansion",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-f886-m6hf-6m8v",
+        "GHSA-3jxr-9vmj-r5cp",
+        "GHSA-mh99-v99m-4gvg",
+        "GHSA-rgw5-rvv9-x895",
+        "GHSA-q2hr-2g5m-vwhr",
+        "GHSA-qhr7-859c-m2p7",
+        "GHSA-6j4f-fj2g-mc7p"
+      ],
+      "paths": [
+        ".>bestzip>glob>minimatch>brace-expansion",
+        ".>bestzip>archiver>readdir-glob>minimatch>brace-expansion",
+        ".>react-scripts>eslint>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "name": "node-forge",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-2328-f5f3-gj25",
+        "GHSA-q67f-28xg-22rw",
+        "GHSA-5m6q-g25r-mvwx",
+        "GHSA-ppp5-5v6c-4jwp"
+      ],
+      "paths": [".>react-scripts>webpack-dev-server>selfsigned>node-forge"]
+    },
+    {
+      "name": "picomatch",
+      "scope": "build/test",
+      "advisories": ["GHSA-3v7f-55p6-f55p", "GHSA-c2c7-rcm5-vvqj"],
+      "paths": [
+        ".>react-scripts>babel-jest>@jest/transform>jest-haste-map>anymatch>picomatch",
+        ".>react-scripts>tailwindcss>sucrase>tinyglobby>picomatch"
+      ]
+    },
+    {
+      "name": "yaml",
+      "scope": "build/test",
+      "advisories": ["GHSA-48c2-rrv3-qjmp"],
+      "paths": [
+        ".>@emotion/css>@emotion/babel-plugin>babel-plugin-macros>cosmiconfig>yaml"
+      ]
+    },
+    {
+      "name": "lodash",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-r5fr-rjxr-66jc",
+        "GHSA-f23m-r3pf-42rh",
+        "GHSA-xxjr-mmjv-4gpg"
+      ],
+      "paths": [
+        ".>react-scripts>eslint-config-react-app>eslint-plugin-flowtype>lodash"
+      ]
+    },
+    {
+      "name": "follow-redirects",
+      "scope": "build/test",
+      "advisories": ["GHSA-r4q5-vmmm-2653"],
+      "paths": [
+        ".>react-scripts>webpack-dev-server>http-proxy-middleware>http-proxy>follow-redirects"
+      ]
+    },
+    {
+      "name": "underscore",
+      "scope": "build/test",
+      "advisories": ["GHSA-qpx9-hpmf-5gmw"],
+      "paths": [".>react-scripts>bfj>jsonpath>underscore"]
+    },
+    {
+      "name": "ws",
+      "scope": "build/test",
+      "advisories": ["GHSA-58qx-3vcg-4xpx", "GHSA-96hv-2xvq-fx4p"],
+      "paths": [
+        ".>react-scripts>webpack-dev-server>ws",
+        ".>react-scripts>jest>@jest/core>jest-config>jest-environment-jsdom>jsdom>ws"
+      ]
+    },
+    {
+      "name": "@tootallnate/once",
+      "scope": "build/test",
+      "advisories": ["GHSA-vpq2-c234-7xj6"],
+      "paths": [
+        ".>react-scripts>jest>@jest/core>jest-config>jest-environment-jsdom>jsdom>http-proxy-agent>@tootallnate/once"
+      ]
+    },
+    {
+      "name": "uuid",
+      "scope": "build/test",
+      "advisories": ["GHSA-w5hq-g745-h8pq"],
+      "paths": [".>react-scripts>webpack-dev-server>sockjs>uuid"]
+    },
+    {
+      "name": "@babel/plugin-transform-modules-systemjs",
+      "scope": "build/test",
+      "advisories": ["GHSA-fv7c-fp4j-7gwp"],
+      "paths": [".>@babel/preset-env>@babel/plugin-transform-modules-systemjs"]
+    },
+    {
+      "name": "form-data",
+      "scope": "build/test",
+      "advisories": ["GHSA-hmw2-7cc7-3qxx"],
+      "paths": [
+        ".>react-scripts>jest>@jest/core>jest-config>jest-environment-jsdom>jsdom>form-data"
+      ]
+    },
+    {
+      "name": "launch-editor",
+      "scope": "build/test",
+      "advisories": ["GHSA-v6wh-96g9-6wx3"],
+      "paths": [".>react-scripts>webpack-dev-server>launch-editor"]
+    },
+    {
+      "name": "dompurify",
+      "scope": "runtime or mixed",
+      "advisories": [
+        "GHSA-hpcv-96wg-7vj8",
+        "GHSA-r47g-fvhr-h676",
+        "GHSA-rp9w-3fw7-7cwq",
+        "GHSA-c2j3-45gr-mqc4",
+        "GHSA-cmwh-pvxp-8882",
+        "GHSA-vxr8-fq34-vvx9",
+        "GHSA-gvmj-g25r-r7wr",
+        "GHSA-x4vx-rjvf-j5p4",
+        "GHSA-76mc-f452-cxcm",
+        "GHSA-55q2-fjhq-7xh7"
+      ],
+      "paths": [".>dompurify"]
+    },
+    {
+      "name": "http-proxy-middleware",
+      "scope": "build/test",
+      "advisories": ["GHSA-64mm-vxmg-q3vj"],
+      "paths": [".>react-scripts>webpack-dev-server>http-proxy-middleware"]
+    },
+    {
+      "name": "js-yaml",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-h67p-54hq-rp68",
+        "GHSA-52cp-r559-cp3m",
+        "GHSA-5p4m-2wfm-xmqj",
+        "GHSA-2883-xcg3-v3hh"
+      ],
+      "paths": [
+        ".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo>js-yaml",
+        ".>react-scripts>eslint>js-yaml"
+      ]
+    },
+    {
+      "name": "@babel/core",
+      "scope": "build/test",
+      "advisories": ["GHSA-4x5r-pxfx-6jf8"],
+      "paths": [".>@babel/core"]
+    },
+    {
+      "name": "shell-quote",
+      "scope": "build/test",
+      "advisories": ["GHSA-395f-4hp3-45gv"],
+      "paths": [".>react-scripts>react-dev-utils>shell-quote"]
+    },
+    {
+      "name": "body-parser",
+      "scope": "build/test",
+      "advisories": ["GHSA-v422-hmwv-36x6"],
+      "paths": [".>react-scripts>webpack-dev-server>express>body-parser"]
+    },
+    {
+      "name": "fast-uri",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-v2hh-gcrm-f6hx",
+        "GHSA-7p8r-x3mc-p8w7",
+        "GHSA-q3j6-qgpj-74h6",
+        "GHSA-v39h-62p7-jpjc",
+        "GHSA-f65p-4m7j-42xc",
+        "GHSA-jqff-g426-hqxp",
+        "GHSA-4c8g-83qw-93j6",
+        "GHSA-qw65-cvwx-89v3",
+        "GHSA-hrr3-gc8f-f4qj"
+      ],
+      "paths": [
+        ".>react-scripts>@pmmmwh/react-refresh-webpack-plugin>schema-utils>ajv>fast-uri"
+      ]
+    },
+    {
+      "name": "react-router",
+      "scope": "runtime or mixed",
+      "advisories": [
+        "GHSA-wrjc-x8rr-h8h6",
+        "GHSA-337j-9hxr-rhxg",
+        "GHSA-2j2x-hqr9-3h42"
+      ],
+      "paths": [".>react-router-dom>react-router"]
+    },
+    {
+      "name": "@remix-run/router",
+      "scope": "runtime or mixed",
+      "advisories": ["GHSA-2j2x-hqr9-3h42"],
+      "paths": [".>react-router-dom>@remix-run/router"]
+    },
+    {
+      "name": "nanoid",
+      "scope": "build/test",
+      "advisories": [
+        "GHSA-28wg-ghj8-5hjv",
+        "GHSA-2v37-7h3g-55p8",
+        "GHSA-xwg4-73v4-xw9w"
+      ],
+      "paths": [".>react-scripts>postcss>nanoid"]
+    },
+    {
+      "name": "decode-uri-component",
+      "scope": "runtime or mixed",
+      "advisories": ["GHSA-vcc3-ghjq-m6fr"],
+      "paths": [".>query-string>decode-uri-component"]
+    },
+    {
+      "name": "postcss-selector-parser",
+      "scope": "build/test",
+      "advisories": ["GHSA-w9m9-85wc-3x92"],
+      "paths": [
+        ".>react-scripts>css-loader>postcss-modules-local-by-default>postcss-selector-parser",
+        ".>postcss-selector-parser"
+      ]
+    },
+    {
+      "name": "browserslist",
+      "scope": "build/test",
+      "advisories": ["GHSA-c83g-rgw3-j3cx", "GHSA-73wf-gq98-2v4g"],
+      "paths": [".>@babel/core>@babel/helper-compilation-targets>browserslist"]
+    },
+    {
+      "name": "react-router-dom",
+      "scope": "runtime or mixed",
+      "advisories": ["GHSA-jjmj-jmhj-qwj2"],
+      "paths": [".>react-router-dom"]
+    },
+    {
+      "name": "colord",
+      "scope": "build/test",
+      "advisories": ["GHSA-2wm5-q62r-hmrv"],
+      "paths": [
+        ".>react-scripts>css-minimizer-webpack-plugin>cssnano>cssnano-preset-default>postcss-colormin>colord"
+      ]
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "scope": "build/test",
+      "advisories": ["GHSA-w5vr-8v7q-w6rv"],
+      "paths": [
+        ".>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping"
+      ]
+    },
+    {
+      "name": "webpack-dev-middleware",
+      "scope": "build/test",
+      "advisories": ["GHSA-g84c-rxfj-3j2c"],
+      "paths": [".>react-scripts>webpack-dev-server>webpack-dev-middleware"]
+    }
+  ]
+}

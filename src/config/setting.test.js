@@ -5,7 +5,7 @@ import {
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_TRANBOX_SETTING,
 } from "./setting";
-import { DEFAULT_API_LIST, OPT_TRANS_MICROSOFT } from "./api";
+import { DEFAULT_API_LIST, OPT_TRANS_MTRAN } from "./api";
 import { GLOBAL_KEY } from "./rules";
 
 describe("translation box defaults", () => {
@@ -21,10 +21,17 @@ describe("translation box defaults", () => {
     expect(DEFAULT_SETTING.autoTranslateClipboard).toBe(false);
   });
 
-  test("uses Microsoft for every default translation entry point", () => {
-    expect(DEFAULT_INPUT_RULE.apiSlug).toBe(OPT_TRANS_MICROSOFT);
-    expect(DEFAULT_TRANBOX_SETTING.apiSlugs).toEqual([OPT_TRANS_MICROSOFT]);
-    expect(DEFAULT_SUBTITLE_SETTING.apiSlug).toBe(OPT_TRANS_MICROSOFT);
+  test("requires opt-in for remote dictionaries, suggestions, rules and update checks", () => {
+    expect(DEFAULT_TRANBOX_SETTING.enDict).toBe("-");
+    expect(DEFAULT_TRANBOX_SETTING.enSug).toBe("-");
+    expect(DEFAULT_SETTING.injectRules).toBe(false);
+    expect(DEFAULT_SETTING.checkUpdate).toBe(false);
+  });
+
+  test("uses local MTranServer for every default translation entry point", () => {
+    expect(DEFAULT_INPUT_RULE.apiSlug).toBe(OPT_TRANS_MTRAN);
+    expect(DEFAULT_TRANBOX_SETTING.apiSlugs).toEqual([OPT_TRANS_MTRAN]);
+    expect(DEFAULT_SUBTITLE_SETTING.apiSlug).toBe(OPT_TRANS_MTRAN);
   });
 
   test("does not ignore any language by default", () => {

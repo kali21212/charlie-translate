@@ -54,6 +54,7 @@ import {
   OPT_TRANS_DEEPLX,
   // OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_APIMART,
   OPT_TRANS_BUILTINAI,
@@ -848,7 +849,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         />
       </Box>
 
-      {(!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
+      {(!API_SPE_TYPES.machine.has(apiType) ||
+        apiType === OPT_TRANS_QWENMT ||
+        apiType === OPT_TRANS_MTRAN) &&
         apiType !== OPT_TRANS_BUILTINAI && (
           <>
             <TextField

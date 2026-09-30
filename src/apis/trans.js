@@ -1646,6 +1646,27 @@ const genCustom = ({ texts, fromLang, toLang, url, key, useBatchFetch }) => {
   return { url, body, headers };
 };
 
+const validateMTranUrl = (url) => {
+  const endpoint = new URL(url);
+  if (
+    !["http:", "https:"].includes(endpoint.protocol) ||
+    !["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname) ||
+    endpoint.username ||
+    endpoint.password
+  ) {
+    throw new Error(
+      "MTranServer requires a loopback URL; use Custom for an explicitly chosen remote server"
+    );
+  }
+};
+
+const genMTran = (options) => {
+  validateMTranUrl(options.url);
+  const request = genCustom(options);
+  if (!options.key) delete request.headers.Authorization;
+  return request;
+};
+
 const genReqFuncs = {
   [OPT_TRANS_GOOGLE]: genGoogle,
   [OPT_TRANS_GOOGLE_2]: genGoogle2,
@@ -1679,7 +1700,7 @@ const genReqFuncs = {
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
   [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_REQUESTY]: genRequesty,
-  [OPT_TRANS_MTRAN]: genCustom,
+  [OPT_TRANS_MTRAN]: genMTran,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 
@@ -1730,6 +1751,15 @@ const genInit = ({
  * @returns
  */
 export const genTransReq = async ({ reqHook, ...args }) => {
+  const finalizeRequest = (request) => {
+    if (args.apiType === OPT_TRANS_MTRAN) validateMTranUrl(request.url);
+    const result = genInit(request);
+    if (args.apiType === OPT_TRANS_MTRAN) {
+      // The local service must not redirect translation text to a remote host.
+      Object.assign(result[1], { redirect: "error", credentials: "omit" });
+    }
+    return result;
+  };
   const {
     apiType,
     apiSlug,
@@ -1877,7 +1907,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         req
       );
       if (hookResult && hookResult.url) {
-        return genInit(hookResult);
+        return finalizeRequest(hookResult);
       }
     } catch (err) {
       kissLog("run req hook", err);
@@ -1885,7 +1915,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     }
   }
 
-  return genInit({ url, body, headers, userMsg, method });
+  return finalizeRequest({ url, body, headers, userMsg, method });
 };
 
 /**
@@ -2098,6 +2128,20 @@ export const parseTransRes = async (
       }
       return parseAIRes(modelMsg?.content, useBatchFetch, batchProtocol);
     case OPT_TRANS_MTRAN:
+      if (useBatchFetch) {
+        const translations = res?.translations;
+        if (
+          !Array.isArray(translations) ||
+          translations.length !== texts?.length ||
+          translations.some((item) => typeof item?.text !== "string")
+        ) {
+          throw new Error("Invalid MTranServer batch response");
+        }
+        return translations.map((item) => [item.text, item.src]);
+      }
+      if (typeof res?.text !== "string")
+        throw new Error("Invalid MTranServer response");
+      return [[res.text, res.src || res.from]];
     case OPT_TRANS_CUSTOMIZE:
       if (useBatchFetch) {
         return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
