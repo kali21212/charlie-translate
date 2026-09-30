@@ -1,7 +1,6 @@
 #!/usr/bin/env zx
 import { argv, quote, $, ProcessOutput } from "zx";
 import { copySubtitleSamplesToWeb } from "./subtitle-samples.mjs";
-import { prepareOcr } from "./prepare-ocr.mjs";
 
 // 在 Windows 上使用 cmd.exe，避免 zx 默认使用 WSL bash 导致 node not found
 if (process.platform === "win32") {
@@ -143,7 +142,6 @@ try {
     );
   }
 
-  if (target === "chrome") await prepareOcr(inDest("ocr"));
   console.log(
     chalk.green(`✅ Build task for [${target}] completed successfully!`)
   );

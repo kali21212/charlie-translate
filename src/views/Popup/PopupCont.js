@@ -52,7 +52,6 @@ import ApiProviderIcon from "../../components/ApiProviderIcon";
 import { COLLAPSED_SERVICE_LIMIT, getVisibleServices } from "./services";
 import CompactLanguageSelect from "./CompactLanguageSelect";
 import PopupStylePreview from "./PopupStylePreview";
-import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
 
@@ -884,14 +883,6 @@ export default function PopupCont({
               {i18n("popup_all_settings")}
             </Button>
           </footer>
-          <div className="kt-popup-support">
-            <a href={REVIEW_URL} target="_blank" rel="noopener noreferrer">
-              {i18n("comment_support")}
-            </a>
-            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-              {i18n("appreciate_support")}
-            </a>
-          </div>
         </>
       )}
 

@@ -1,23 +1,14 @@
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
-import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import IconButton from "@mui/material/IconButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import { useState } from "react";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
-import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 
 export default function Header({ onClose, openSeparateWindow, openSettings }) {
   const i18n = useI18n();
   const appName = process.env.REACT_APP_NAME || "KISS Translator";
-  const [supportAnchor, setSupportAnchor] = useState(null);
 
   const handleHomepage = () => {
     window.open(
@@ -25,11 +16,6 @@ export default function Header({ onClose, openSeparateWindow, openSettings }) {
       "_blank",
       "noopener,noreferrer"
     );
-  };
-
-  const openSupportLink = (url) => {
-    setSupportAnchor(null);
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -62,19 +48,6 @@ export default function Header({ onClose, openSeparateWindow, openSettings }) {
         <>
           <span className="kt-popup-header__actions">
             <IconButton
-              className="kt-popup-header__sponsor"
-              title={i18n("popup_support")}
-              aria-label={i18n("popup_support")}
-              aria-controls={
-                supportAnchor ? "kt-popup-support-menu" : undefined
-              }
-              aria-expanded={supportAnchor ? "true" : undefined}
-              aria-haspopup="menu"
-              onClick={(event) => setSupportAnchor(event.currentTarget)}
-            >
-              <VolunteerActivismRoundedIcon />
-            </IconButton>
-            <IconButton
               onClick={openSeparateWindow}
               aria-label={i18n("open_separate_window")}
             >
@@ -84,30 +57,6 @@ export default function Header({ onClose, openSeparateWindow, openSettings }) {
               <SettingsRoundedIcon />
             </IconButton>
           </span>
-          <Menu
-            id="kt-popup-support-menu"
-            anchorEl={supportAnchor}
-            open={Boolean(supportAnchor)}
-            onClose={() => setSupportAnchor(null)}
-            disableScrollLock
-            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-            transformOrigin={{ vertical: "top", horizontal: "left" }}
-            transitionDuration={0}
-            MenuListProps={{ "aria-label": i18n("popup_support") }}
-          >
-            <MenuItem onClick={() => openSupportLink(REVIEW_URL)}>
-              <ListItemIcon>
-                <RateReviewRoundedIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>{i18n("comment_support")}</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => openSupportLink(SUPPORT_URL)}>
-              <ListItemIcon>
-                <VolunteerActivismRoundedIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>{i18n("appreciate_support")}</ListItemText>
-            </MenuItem>
-          </Menu>
         </>
       )}
     </header>

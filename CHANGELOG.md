@@ -1,3 +1,11 @@
+# Charlie desktop 1.0 / enhanced OCR
+
+- 新增 Windows 便携桌面程序：全局框选、图片预览、PP-OCRv5 增强 OCR、复制与主动保存。
+- 桌面翻译使用随包 MTranServer 英文到简体中文离线模型，只传文字；关闭远程下载、更新与外部连接。
+- 浏览器共用桌面 OCR，移除 Tesseract、轻量选择和 offscreen 权限。
+- 移除弹窗顶部支持图标及好评/赞赏入口，保留设置与独立窗口按钮。
+- 新增接口隐私测试、真实中英文 OCR、便携打包与依赖/模型哈希校验。
+
 ## Charlie Unreleased
 
 - Added webpage screenshot tools: region selection, PNG saving, bundled local English/Chinese OCR, editable text and explicit translation through enabled providers. Captures verify the active document/window and fail closed on sensitive fields; assets preserve pinned sources/checksums and Apache-2.0 notices.
