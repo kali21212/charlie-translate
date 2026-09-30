@@ -1,0 +1,40 @@
+name: Charlie CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: |
+          corepack pnpm@10.15.1 install --frozen-lockfile
+
+      - name: Charlie regression tests
+        env:
+          CI: "true"
+        run: |
+          corepack pnpm@10.15.1 exec react-app-rewired test --runInBand --watchAll=false             src/libs/securityGuard.test.js             src/config/api.test.js             src/apis/trans.mtran.test.js
+
+      - name: Build Chrome extension
+        run: |
+          corepack pnpm@10.15.1 build:chrome
+
+      - name: Diff whitespace check
+        run: git diff --check

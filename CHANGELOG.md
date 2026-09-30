@@ -1,3 +1,12 @@
+## Charlie Unreleased
+
+- Added MTranServer local/offline provider preset using the compatible /kiss API.
+- Added Charlie privacy guard for credential-sensitive pages.
+- Added provenance, security baseline, contribution guidance, and CI governance.
+- Charlie-specific changes remain GPL-3.0 and are maintained on top of the upstream KISS history.
+
+---
+
 ## v2.1.0
 
 - 新增术语库本地替换引擎和专业术语 Playground，支持在翻译流程中验证术语替换效果。
