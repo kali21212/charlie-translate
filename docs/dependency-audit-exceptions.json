@@ -65,24 +65,6 @@
       "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
     },
     {
-      "id": "GHSA-wrjc-x8rr-h8h6",
-      "module": "react-router",
-      "severity": "moderate",
-      "scope": "runtime",
-      "versions": ["6.30.6"],
-      "paths": [".>react-router-dom>react-router"],
-      "reason": "Declarative HashRouter uses static local routes; no attacker-supplied navigation, SSR, framework or data hydration. Keep v6 compatibility until tested migration."
-    },
-    {
-      "id": "GHSA-337j-9hxr-rhxg",
-      "module": "react-router",
-      "severity": "moderate",
-      "scope": "runtime",
-      "versions": ["6.30.6"],
-      "paths": [".>react-router-dom>react-router"],
-      "reason": "Declarative HashRouter uses static local routes; no attacker-supplied navigation, SSR, framework or data hydration. Keep v6 compatibility until tested migration."
-    },
-    {
       "id": "GHSA-2p49-hgcm-8545",
       "module": "svgo",
       "severity": "high",

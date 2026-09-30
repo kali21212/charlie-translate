@@ -26,4 +26,6 @@ MTranServer is a separately installed API-only service. Inspected its Apache-2.0
 
 Charlie changes cover local defaults/adapter, privacy checks, extension names/homepage, compatible dependency patches, tests/CI and governance docs. Storage keys and existing saved settings are retained. `.env` keeps upstream web/userscript deployment references for compatibility; those clients are outside Charlie V1 Chrome validation. Fresh-install update checks are disabled.
 
+Settings routing now uses React Router 7.18.4 directly (MIT LICENSE inspected from the installed package), replacing the v6 react-router-dom dependency. HashRouter/Routes/NavLink/Outlet interfaces remain declarative; routing and startup behavior are regression-tested. Test-only encoding API setup supplies Node implementations missing from CRA's jsdom; no runtime routing mocks or forced v7 transitive override are used.
+
 Sync future upstream updates on an integration branch, then rerun test/audit/PR checks. Never push to upstream. Distributing modified binaries requires corresponding GPL source and preserved notices, including generated dependency license notices.

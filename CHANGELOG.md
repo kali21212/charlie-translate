@@ -1,5 +1,7 @@
 ## Charlie Unreleased
 
+- Migrated settings routing to the MIT-licensed React Router 7.18.4, fixing GHSA-wrjc-x8rr-h8h6 and GHSA-337j-9hxr-rhxg instead of retaining runtime exceptions. Production audit now has zero vulnerabilities; full audit retains 11 build/dev-only findings. CI requires a clean production audit and exercises settings routing/startup.
+
 - Added MTranServer local/offline provider preset using the compatible /kiss API.
 - Added Charlie privacy guard for credential-sensitive pages.
 - Added provenance, security baseline, contribution guidance, and CI governance.
@@ -8,7 +10,7 @@
 - MTranServer restricts endpoints to loopback, supports optional tokens, exposes URL/Key controls and never switches automatically to cloud.
 - Privacy checks now cover hash/encoded routes, late secret fields, open shadow roots and the real popup clipboard boundary; navigation/inspection failures stop reads.
 - Extension names/homepages identify Charlie while retaining upstream author/license attribution.
-- Pinned pnpm 10.15.1, moved react-scripts to devDependencies, applied compatible upgrades/scoped overrides. Full audit counts: 136 -> 13; production: two moderate, no high/critical. Residual scope is documented in docs/DEPENDENCY_AUDIT.md.
+- Initial hardening pinned pnpm 10.15.1, moved react-scripts to devDependencies and applied compatible upgrades/scoped overrides: full audit 136 -> 13. Subsequent tested Router v7 migration repairs the two remaining runtime findings: full audit now 11, production zero. See docs/DEPENDENCY_AUDIT.md.
 - Added real runtime dependency compatibility tests and exact-head CI with reviewed audit exceptions.
 - MTranServer validates post-hook URLs, blocks Chrome HTTP redirects and rejects malformed or incomplete batch responses. Clipboard text is discarded if navigation occurs during reading.
 
