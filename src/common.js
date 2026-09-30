@@ -14,6 +14,7 @@ import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
 import TranslatorManager from "./libs/translatorManager";
+import { applySensitivePageGuards } from "./libs/securityGuard";
 
 /**
  * 油猴脚本特权桥接设置。
@@ -260,6 +261,9 @@ export async function run(isUserscript = false) {
 
     // 2. 初始化全局日志配置
     logger.setLevel(setting.logLevel);
+
+    // 2.1 Charlie privacy guard: never auto-process editable secrets/clipboard on sensitive routes.
+    applySensitivePageGuards({ href, setting, doc: document });
 
     // 3. 页面类型拦截：若是 PDF / 图片 / 音视频等非 HTML 或纯文本媒体页面，则终止执行，避免注入多余 DOM
     const contentType = document?.contentType?.toLowerCase() || "";

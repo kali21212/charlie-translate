@@ -1,3 +1,22 @@
+# Charlie Translate｜查理翻译
+
+> Privacy-first enhanced derivative of KISS Translator. Upstream: [fishjar/kiss-translator](https://github.com/fishjar/kiss-translator). Distributed under GPL-3.0; upstream attribution and history are preserved. See [UPSTREAM.md](UPSTREAM.md) and [CHANGELOG.md](CHANGELOG.md).
+>
+> Charlie additions currently include a local/offline MTranServer provider preset and credential-sensitive-page privacy guardrails. The upstream KISS feature set remains available underneath.
+
+## Charlie V1 goals
+
+- Local-first translation path with **MTranServer**; no GPT/Codex usage is required for ordinary translation.
+- Keep cloud/AI providers optional rather than defaulting routine translation to a large model.
+- Preserve bilingual page, selection, hover, input, subtitle, rule and glossary capabilities from KISS Translator.
+- Protect account/security surfaces from automatic editable-input and clipboard translation.
+- Maintain a clean upstream sync path and auditable Charlie-only changelog.
+- Prepare an agent-facing translation interface (WebMCP/MCP) as a later governed phase after the browser-extension baseline is stable.
+
+---
+
+## Upstream project
+
 # KISS Translator 简约翻译
 
 [English](README.en.md) | [中文](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
