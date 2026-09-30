@@ -16,6 +16,38 @@ import { isBg } from "./browser";
 import { sendBgMsg } from "./msg";
 import { parseResponse } from "./response";
 
+const cacheExpired = (response, now = Date.now()) => {
+  const savedAt = Number(response.headers.get("X-Charlie-Cached-At"));
+  const maxAge = Number(
+    response.headers.get("Cache-Control")?.match(/max-age=(\d+)/)?.[1]
+  );
+  // Legacy entries have no trustworthy creation time and must be discarded.
+  return (
+    !savedAt ||
+    !maxAge ||
+    now >= savedAt + Math.min(maxAge, DEFAULT_CACHE_TIMEOUT) * 1000
+  );
+};
+
+let lastSweep = 0;
+export const pruneExpiredCaches = async () => {
+  try {
+    if (!(await caches.has(CACHE_NAME))) return;
+    const cache = await caches.open(CACHE_NAME);
+    for (const request of await cache.keys()) {
+      const response = await cache.match(request);
+      if (response && cacheExpired(response)) await cache.delete(request);
+    }
+    lastSweep = Date.now();
+  } catch (err) {
+    kissLog("prune expired caches", err);
+  }
+};
+
+const sweepIfDue = async () => {
+  if (Date.now() - lastSweep >= 6 * 3600 * 1000) await pruneExpiredCaches();
+};
+
 /**
  * Clear translation caches and report whether the operation completed.
  * A cache that does not exist is already clear and counts as success.
@@ -71,10 +103,15 @@ const newCacheReq = async (input, init) => {
  */
 export const getHttpCache = async ({ input, init, expect }) => {
   try {
+    await sweepIfDue();
     const request = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
     const response = await cache.match(request);
     if (response) {
+      if (cacheExpired(response)) {
+        await cache.delete(request);
+        return null;
+      }
       const res = await parseResponse(response, expect);
       return res;
     }
@@ -98,6 +135,7 @@ export const putHttpCache = async ({
   maxAge = DEFAULT_CACHE_TIMEOUT, // todo: 从设置里面读取最大缓存时间
 }) => {
   try {
+    await sweepIfDue();
     const req = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
     const res = new Response(JSON.stringify(data), {
@@ -105,6 +143,7 @@ export const putHttpCache = async ({
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": `max-age=${maxAge}`,
+        "X-Charlie-Cached-At": String(Date.now()),
       },
     });
     // res.headers.set("Cache-Control", `max-age=${maxAge}`);

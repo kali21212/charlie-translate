@@ -1,97 +1,85 @@
-import { tryClearCaches } from "./cache";
-import { sendBgMsg } from "./msg";
-import { CACHE_NAME, MSG_CLEAR_CACHES } from "../config";
-
-let mockIsExt = false;
-let mockIsBackground = false;
-const originalCaches = globalThis.caches;
-
 jest.mock("../config", () => ({
-  CACHE_NAME: "translation-cache",
-  DEFAULT_CACHE_TIMEOUT: 3600,
-  MSG_CLEAR_CACHES: "clear-caches",
-  MSG_GET_HTTPCACHE: "get-cache",
-  MSG_PUT_HTTPCACHE: "put-cache",
+  CACHE_NAME: "owned-cache",
+  DEFAULT_CACHE_TIMEOUT: 604800,
 }));
-jest.mock("./client", () => ({
-  get isExt() {
-    return mockIsExt;
-  },
-}));
-jest.mock("./browser", () => ({ isBg: () => mockIsBackground }));
+jest.mock("./client", () => ({ isExt: false }));
+jest.mock("./browser", () => ({ isBg: () => false }));
 jest.mock("./msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("./log", () => ({ kissLog: jest.fn() }));
-jest.mock("./response", () => ({ parseResponse: jest.fn() }));
+jest.mock("./response", () => ({
+  parseResponse: async (response) => JSON.parse(response.body),
+}));
 
-describe("translation cache clearing", () => {
+import { getHttpCache, putHttpCache, pruneExpiredCaches } from "./cache";
+
+describe("translation cache retention", () => {
+  let entries;
   beforeEach(() => {
-    mockIsExt = false;
-    mockIsBackground = false;
-    globalThis.caches = { delete: jest.fn().mockResolvedValue(true) };
-    sendBgMsg.mockReset();
+    entries = new Map();
+    global.Request = class {
+      constructor(url, init = {}) {
+        this.url = url;
+        this.method = init.method || "GET";
+        this.body = init.body;
+      }
+      async text() {
+        return this.body;
+      }
+    };
+    global.Response = class {
+      constructor(body, init) {
+        this.body = body;
+        this.headers = { get: (name) => init.headers[name] ?? null };
+      }
+    };
+    const cache = {
+      keys: async () => [...entries.keys()].map((url) => new Request(url)),
+      match: async (request) => entries.get(request.url),
+      put: async (request, response) => entries.set(request.url, response),
+      delete: jest.fn(async (request) => entries.delete(request.url)),
+    };
+    global.caches = { has: async () => true, open: async () => cache };
   });
 
-  afterEach(() => {
-    if (originalCaches === undefined) delete globalThis.caches;
-    else globalThis.caches = originalCaches;
-  });
-
-  test.each([true, false])(
-    "completes successfully when cache deletion reports existed=%s",
-    async (existed) => {
-      caches.delete.mockResolvedValueOnce(existed);
-      await expect(tryClearCaches()).resolves.toBe(true);
-      expect(caches.delete).toHaveBeenCalledWith(CACHE_NAME);
-      expect(sendBgMsg).not.toHaveBeenCalled();
-    }
-  );
-
-  test("waits for local deletion to complete", async () => {
-    let resolveDeletion;
-    caches.delete.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveDeletion = resolve;
-        })
+  test("keeps recent responses, deletes old and unversioned entries from disk", async () => {
+    entries.set(
+      "http://127.0.0.1/old",
+      new Response("{}", {
+        headers: {
+          "X-Charlie-Cached-At": String(Date.now() - 8 * 86400000),
+          "Cache-Control": "max-age=604800",
+        },
+      })
     );
-    const onComplete = jest.fn();
-    const clearing = tryClearCaches().then(onComplete);
-    await Promise.resolve();
-    expect(onComplete).not.toHaveBeenCalled();
-
-    resolveDeletion(true);
-    await clearing;
-    expect(onComplete).toHaveBeenCalledWith(true);
+    entries.set(
+      "http://127.0.0.1/legacy",
+      new Response("{}", { headers: { "Cache-Control": "max-age=604800" } })
+    );
+    await putHttpCache({
+      input: "http://127.0.0.1/recent",
+      data: { text: "recent" },
+    });
+    await pruneExpiredCaches();
+    expect([...entries.keys()]).toEqual(["http://127.0.0.1/recent"]);
+    await expect(
+      getHttpCache({ input: "http://127.0.0.1/recent" })
+    ).resolves.toEqual({ text: "recent" });
   });
 
-  test("returns failure when local deletion rejects", async () => {
-    caches.delete.mockRejectedValueOnce(new Error("Cache unavailable"));
-    await expect(tryClearCaches()).resolves.toBe(false);
-  });
-
-  test("clears locally in the extension background", async () => {
-    mockIsExt = true;
-    mockIsBackground = true;
-    await expect(tryClearCaches()).resolves.toBe(true);
-    expect(caches.delete).toHaveBeenCalledWith(CACHE_NAME);
-    expect(sendBgMsg).not.toHaveBeenCalled();
-  });
-
-  test.each([true, false, undefined])(
-    "requires an explicit background success acknowledgement: %s",
-    async (response) => {
-      mockIsExt = true;
-      sendBgMsg.mockResolvedValueOnce(response);
-      await expect(tryClearCaches()).resolves.toBe(response === true);
-      expect(sendBgMsg).toHaveBeenCalledWith(MSG_CLEAR_CACHES);
-      expect(caches.delete).not.toHaveBeenCalled();
-    }
-  );
-
-  test("returns failure when the background request rejects", async () => {
-    mockIsExt = true;
-    sendBgMsg.mockRejectedValueOnce(new Error("Background unavailable"));
-    await expect(tryClearCaches()).resolves.toBe(false);
-    expect(caches.delete).not.toHaveBeenCalled();
+  test("never returns expired responses even between sweeps", async () => {
+    await pruneExpiredCaches();
+    entries.set(
+      "http://127.0.0.1/expired",
+      new Response("{}", {
+        headers: {
+          "X-Charlie-Cached-At": String(Date.now() - 2000),
+          "Cache-Control": "max-age=1",
+        },
+      })
+    );
+    await expect(
+      getHttpCache({ input: "http://127.0.0.1/expired" })
+    ).resolves.toBeNull();
+    expect(entries.size).toBe(0);
   });
 });

@@ -22,6 +22,7 @@ import {
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
   normalizeApiThinkingSettings,
+  OPT_TRANS_MTRAN,
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_WORDS_KEY,
@@ -515,6 +516,31 @@ export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
 const writeSettingBackupBeforeV2 = (setting) =>
   setObj(STOKEY_SETTING_BACKUP_V1_BEFORE_V2, setting);
+
+const CHARLIE_DESKTOP_MTRAN_URL = "http://127.0.0.1:8992/kiss";
+const LEGACY_LOCAL_MTRAN_URLS = new Set([
+  "http://localhost:8989/kiss",
+  "http://127.0.0.1:8989/kiss",
+]);
+const migrateDesktopMTranUrl = (setting) => {
+  if (!Array.isArray(setting?.transApis)) return setting;
+  let changed = false;
+  const transApis = setting.transApis.map((api) => {
+    const isMTran =
+      api?.apiType === OPT_TRANS_MTRAN || api?.apiSlug === OPT_TRANS_MTRAN;
+    if (
+      isMTran &&
+      !api?.key &&
+      LEGACY_LOCAL_MTRAN_URLS.has(String(api?.url || "").replace(/\/$/, ""))
+    ) {
+      changed = true;
+      return { ...api, url: CHARLIE_DESKTOP_MTRAN_URL };
+    }
+    return api;
+  });
+  return changed ? { ...setting, transApis } : setting;
+};
+
 const mergeSettingWithDefault = (setting) => {
   const mergedSetting = {
     ...DEFAULT_SETTING,
@@ -527,9 +553,10 @@ const mergeSettingWithDefault = (setting) => {
   };
 
   // 设置读取时只在内存中归一化一次，避免每次请求重复解析模型能力。
+  const desktopReady = migrateDesktopMTranUrl(mergedSetting);
   return {
-    ...mergedSetting,
-    transApis: normalizeApiThinkingSettings(mergedSetting.transApis),
+    ...desktopReady,
+    transApis: normalizeApiThinkingSettings(desktopReady.transApis),
   };
 };
 export const migrateStoredSettingToV2 = async (
@@ -552,12 +579,19 @@ export const runDataMigration = async () => {
   const needsSchemaMigration =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
   const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
-  if (!needsSchemaMigration && !needsThemeMigration) return true;
+  const desktopReadySetting = migrateDesktopMTranUrl(rawSetting);
+  const needsDesktopBridgeMigration = desktopReadySetting !== rawSetting;
+  if (
+    !needsSchemaMigration &&
+    !needsThemeMigration &&
+    !needsDesktopBridgeMigration
+  )
+    return true;
 
   try {
-    let nextSetting = rawSetting;
+    let nextSetting = desktopReadySetting;
     if (needsSchemaMigration) {
-      const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
+      const v2Setting = await migrateStoredSettingToV2(nextSetting, rawSetting);
       nextSetting = migrateSettingToV3(v2Setting);
     }
     if (needsThemeMigration) {

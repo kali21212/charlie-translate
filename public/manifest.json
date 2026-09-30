@@ -86,8 +86,7 @@
     "contextMenus",
     "scripting",
     "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess",
-    "downloads"
+    "declarativeNetRequestWithHostAccess"
   ],
   "optional_permissions": [
     "clipboardRead"

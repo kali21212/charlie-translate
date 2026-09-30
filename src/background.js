@@ -2,7 +2,6 @@ import { recognizeScreenshot, cancelScreenshotOcr } from "./libs/screenshotOcr";
 import browser from "webextension-polyfill";
 import {
   captureScreenshot,
-  saveScreenshot,
   SCREENSHOT_CAPTURE,
 } from "./libs/screenshotCapture";
 import { writeSiteRule } from "./libs/ruleEditorStorage";
@@ -53,7 +52,13 @@ import {
 } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
 import { fetchHandle, fetchStreamNative } from "./libs/fetch";
-import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
+import {
+  tryClearCaches,
+  getHttpCache,
+  putHttpCache,
+  pruneExpiredCaches,
+} from "./libs/cache";
+
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { saveRule } from "./libs/rules";
@@ -64,6 +69,9 @@ import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
+
+// A worker wake also clears expired entries without needing an open web page.
+void pruneExpiredCaches();
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
@@ -694,6 +702,8 @@ browser.runtime.onStartup.addListener(async () => {
 
   if (clearCache) {
     tryClearCaches();
+  } else {
+    await pruneExpiredCaches();
   }
 
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
@@ -725,8 +735,6 @@ const injectToCurrentTab = async (func, args) => {
 
 // 后台消息指令与对应处理器映射表
 const messageHandlers = {
-  charlieScreenshotSave: (args, sender) =>
-    saveScreenshot(browser, sender, args?.image),
   charlieScreenshotOcr: recognizeScreenshot,
   charlieScreenshotOcrCancel: cancelScreenshotOcr,
   charlieScreenshotOpen: (_args, sender) =>

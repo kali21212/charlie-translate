@@ -1763,7 +1763,7 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_MTRAN]: {
     ...defaultApi,
-    url: "http://localhost:8989/kiss",
+    url: "http://127.0.0.1:8992/kiss",
     useBatchFetch: true,
     fetchLimit: 8,
     fetchInterval: 20,

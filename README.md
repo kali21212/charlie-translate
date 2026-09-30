@@ -6,14 +6,14 @@
 
 - 网页双语对照、划词翻译、鼠标悬停翻译和输入框翻译。
 - YouTube 字幕翻译、站点规则和术语词典。
-- 网页框选截图、保存 PNG、本地中英文 OCR 和截图文字翻译，见[使用说明](docs/SCREENSHOT.md)。
+- 浏览器「截图翻译」：框选网页区域后自动本地 OCR 并翻译；截图只作为内存临时输入，不保存、不做通用标注，见[使用说明](docs/SCREENSHOT.md)。
 - 本地 MTranServer 接口，以及可选的云翻译和 AI 接口。
 - 敏感页面的输入翻译与自动剪贴板读取保护。
 - 保留上游同步路径，使用测试、依赖审计和 CI 验证修改。
 
 ## 桌面版：全局截图与增强 OCR
 
-Windows x64 便携版支持桌面及其他软件框选、增强 OCR、主动保存/复制、英文到简体中文本机翻译。完整解压后双击 `CharlieTranslate.exe`，无需安装 Python、Node 或填写 Key。截图不上传，不自动保存；浏览器可共用同一套本机 OCR。安装与使用详见[桌面版说明](docs/DESKTOP.md)。
+Windows x64 便携版支持全局框选、可移动悬浮截图按钮、截图标注、不可逆隐私 Redact、自动复制、增强 OCR 和英文到简体中文本机翻译。完整解压后双击 `CharlieTranslate.exe`，无需安装 Python、Node、MTranServer 或填写 Key。浏览器插件可直接共用 EXE 内置 OCR 与翻译服务。安装与使用详见[桌面版说明](docs/DESKTOP.md)。
 
 ## 安装和本机翻译
 
@@ -22,11 +22,9 @@ Charlie 当前以源码和本地 Chrome 构建交付。
 1. 安装 Node.js 22 和 Corepack，运行 `corepack pnpm@10.15.1 install --frozen-lockfile`。
 2. 运行 `corepack pnpm@10.15.1 build:chrome`。
 3. 在 `chrome://extensions` 打开开发者模式，选择“加载已解压的扩展程序”，加载 `build/chrome`。
-4. 按 [MTranServer 官方文档](https://github.com/xxnuo/MTranServer)安装独立服务，绑定 `127.0.0.1`，默认端口 `8989`。扩展不内置或自动安装该服务及模型。
-5. 在翻译接口设置中选择 **MTranServer**，URL 为 `http://localhost:8989/kiss`。如服务配置了 `MT_API_TOKEN`，在 Key 中填写相同值。也支持 `127.0.0.1` 和 IPv6 回环地址；远程服务器需要显式选择 Custom。
-6. 打开普通网页，使用 `Alt+Q` 网页翻译或选中文字后翻译。服务不可用时显示错误，不自动切换到云服务。
-
-首次使用通常需要下载模型；预加载后，按服务文档启用 `MT_OFFLINE=true` 可离线工作。服务安装、模型质量和浏览器内效果需在目标浏览器另行验收；CI 验证客户端协议、行为和构建。
+4. 同时打开完整解压的 Charlie Translate Desktop。插件默认 MTranServer 地址为 `http://127.0.0.1:8992/kiss`，直接复用 EXE 内置的离线 MTranServer 与英文→简体中文模型，不需要单独启动 8989 服务或填写 Key。
+5. 打开普通网页，使用 `Alt+Q` 网页翻译、划词翻译或字幕翻译。EXE 未运行时会明确提示先打开 `CharlieTranslate.exe`，不会自动切换到云服务。
+6. 需要其他模型或自建 MTranServer 时仍可显式配置自定义回环地址；已有自定义 URL/Key 不会被自动覆盖。
 
 新安装默认关闭云翻译接口、在线词典/联想、远程规则注入、更新检查及自动剪贴板翻译。Chrome 内置翻译模型的可用性取决于浏览器，可手动选择。已有云服务、同步及其他配置不会被强制覆盖。
 

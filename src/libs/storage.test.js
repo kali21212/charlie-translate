@@ -35,6 +35,37 @@ function loadGmStorageModule() {
 }
 
 describe("settings storage migration", () => {
+  test("migrates legacy no-key loopback endpoints while preserving explicit providers", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        transApis: [
+          {
+            apiType: OPT_TRANS_MTRAN,
+            apiSlug: "legacy",
+            url: "http://localhost:8989/kiss",
+          },
+          {
+            apiType: OPT_TRANS_MTRAN,
+            apiSlug: "keyed",
+            url: "http://127.0.0.1:8989/kiss",
+            key: "chosen-key",
+          },
+          {
+            apiType: OPT_TRANS_MTRAN,
+            apiSlug: "custom",
+            url: "http://127.0.0.1:9999/kiss",
+          },
+        ],
+      })
+    );
+    const setting = await getSettingWithDefault();
+    expect(setting.transApis.map((api) => api.url)).toEqual([
+      "http://127.0.0.1:8992/kiss",
+      "http://127.0.0.1:8989/kiss",
+      "http://127.0.0.1:9999/kiss",
+    ]);
+  });
   beforeEach(() => {
     window.localStorage.clear();
     delete window.KISS_GM;
