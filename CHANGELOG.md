@@ -1,5 +1,7 @@
 ## Charlie Unreleased
 
+- Rewrote the repository homepage for Charlie Translate, removing inherited upstream advertisements, donation/community links, demonstration media and store installation links while retaining source attribution and GPL notices.
+
 - Migrated settings routing to the MIT-licensed React Router 7.18.4, fixing GHSA-wrjc-x8rr-h8h6 and GHSA-337j-9hxr-rhxg instead of retaining runtime exceptions. Production audit now has zero vulnerabilities; full audit retains 11 build/dev-only findings. CI requires a clean production audit and exercises settings routing/startup.
 
 - Added MTranServer local/offline provider preset using the compatible /kiss API.
