@@ -1,6 +1,7 @@
 #!/usr/bin/env zx
 import { argv, quote, $, ProcessOutput } from "zx";
 import { copySubtitleSamplesToWeb } from "./subtitle-samples.mjs";
+import { prepareOcr } from "./prepare-ocr.mjs";
 
 // 在 Windows 上使用 cmd.exe，避免 zx 默认使用 WSL bash 导致 node not found
 if (process.platform === "win32") {
@@ -137,9 +138,12 @@ try {
 
     const { version } = await fs.readJson("package.json");
     await fs.writeFile(inDest("version.txt"), version);
-    console.log(chalk.green(`Version file generated: ${inDest("version.txt")}`));
+    console.log(
+      chalk.green(`Version file generated: ${inDest("version.txt")}`)
+    );
   }
 
+  if (target === "chrome") await prepareOcr(inDest("ocr"));
   console.log(
     chalk.green(`✅ Build task for [${target}] completed successfully!`)
   );

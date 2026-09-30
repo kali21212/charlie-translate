@@ -38,6 +38,9 @@ jobs:
       - name: Runtime dependency compatibility
         run: corepack pnpm@10.15.1 test:dependency-compatibility
 
+      - name: Real local screenshot OCR
+        run: corepack pnpm@10.15.1 test:screenshot-ocr
+
       - name: Dependency audit with reviewed scope boundaries
         run: corepack pnpm@10.15.1 audit:dependencies
 

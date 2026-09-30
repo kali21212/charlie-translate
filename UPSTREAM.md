@@ -20,6 +20,8 @@ Additional projects are used only where their licenses and security posture are 
 
 ## Charlie V1 reuse review (2026-09-30)
 
+Screenshot tools reuse only Tesseract.js 6.0.1/core and tessdata_fast English/Simplified Chinese models (Apache-2.0 licenses inspected). npm integrity is locked; model source/checksums are in docs/ocr-assets.json. Build assets preserve all three licenses; runtime uses local workers/WASM/models. See docs/SCREENSHOT.md for the reuse review and boundaries.
+
 Route B: adapt KISS Translator, preserving GPL source, author notices and Git history. It provides the existing DOM translation, selection/hover/input/subtitle UI, settings, caching and adapters. Upstream was active on the review date; inherited CRA dependencies require the documented repairs and a later tooling migration.
 
 MTranServer is a separately installed API-only service. Inspected its Apache-2.0 LICENSE and `/kiss` controller/auth middleware at `f5672a986b5bb935064fc74d1a7074fde7469daf`; latest release reviewed: `v4.0.33` (2026-03-08). Requests accept `{texts, from, to}` or `{text, from, to}`, responses contain `text`/`src`, authentication accepts a bearer token. No server source, models, runtime, binary or installer is copied. Protocol review is not a full audit of that independent service.

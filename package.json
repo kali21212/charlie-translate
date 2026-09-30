@@ -19,10 +19,11 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^8.0.7",
+    "react-router": "7.18.4",
     "sval": "^0.5.9",
+    "tesseract.js": "6.0.1",
     "webdav": "^5.11.0",
-    "webextension-polyfill": "^0.10.0",
-    "react-router": "7.18.4"
+    "webextension-polyfill": "^0.10.0"
   },
   "scripts": {
     "start": "cross-env HOST=127.0.0.1 REACT_APP_CLIENT=web react-app-rewired start",
@@ -51,7 +52,8 @@
     "eject": "react-scripts eject",
     "audit:dependencies": "node src/scripts/audit-dependencies.mjs",
     "test:dependency-compatibility": "node src/scripts/test-charlie-dependencies.mjs",
-    "test:charlie": "react-app-rewired test --runInBand --watchAll=false src/libs/securityGuard.test.js src/libs/clipboard.test.js src/libs/inputTranslate.test.js src/apis/trans.mtran.test.js src/config/api.test.js src/config/setting.test.js src/libs/storage.test.js src/libs/sync.test.js src/libs/translatorManager.test.js src/views/Options/Apis.test.js src/views/Options/index.test.js src/views/Options/Navigator.test.js src/views/Popup/index.test.js src/views/Options/Layout.test.js src/views/Options/startup.integration.test.js"
+    "test:charlie": "react-app-rewired test --runInBand --watchAll=false src/libs/securityGuard.test.js src/libs/clipboard.test.js src/libs/inputTranslate.test.js src/apis/trans.mtran.test.js src/config/api.test.js src/config/setting.test.js src/libs/storage.test.js src/libs/sync.test.js src/libs/translatorManager.test.js src/views/Options/Apis.test.js src/views/Options/index.test.js src/views/Options/Navigator.test.js src/views/Popup/index.test.js src/views/Options/Layout.test.js src/views/Options/startup.integration.test.js src/libs/screenshotGeometry.test.js src/libs/screenshotCapture.test.js src/views/Action/ContentFab.test.js src/views/Action/ContentFab.integration.test.js src/libs/screenshotOcr.test.js src/views/Screenshot/index.test.js",
+    "test:screenshot-ocr": "node src/scripts/test-screenshot-ocr.mjs"
   },
   "eslintConfig": {
     "extends": [

@@ -39,7 +39,10 @@ jest.mock("../../hooks/WindowSize", () => ({
 jest.mock("../../hooks/useFullscreenDetect", () => ({
   useFullscreenDetect: () => ({ isVideoFullscreen: mockIsVideoFullscreen }),
 }));
-jest.mock("../../libs/client", () => ({ isExt: true }));
+jest.mock("../../libs/client", () => ({
+  isExt: true,
+  isScreenshotSupported: true,
+}));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 
 // Replace Draggable to access the FAB and menu directly.
@@ -134,6 +137,18 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     );
   });
 
+  test("screenshot action uses the extension channel and closes the menu", () => {
+    render();
+    clickFab();
+    act(() =>
+      menuItems()
+        .find((item) => item.textContent === "截图与翻译")
+        .click()
+    );
+    expect(sendBgMsg).toHaveBeenCalledWith("charlieScreenshotOpen");
+    expect(menuItems()).toHaveLength(0);
+  });
+
   test("opens the action menu on click and lists every action", () => {
     render();
     expect(menuItems()).toHaveLength(0);
@@ -168,6 +183,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
       "selection_translate",
       "open_menu",
       "open_setting",
+      "截图与翻译",
       "touch_paragraph",
     ]);
     expect(fab().querySelectorAll(".MuiSpeedDialIcon-root svg")).toHaveLength(
@@ -244,7 +260,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems()[2].getAttribute("aria-disabled")).toBe("true");
     act(() => menuItems()[2].click());
     expect(processActions).not.toHaveBeenCalled();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
@@ -299,11 +315,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     pressMenuKey("ArrowUp");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
     expect(pressMenuKey("End").defaultPrevented).toBe(true);
-    expect(focusRoot.activeElement).toBe(menuItems()[5]);
+    expect(focusRoot.activeElement).toBe(menuItems()[6]);
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     pressMenuKey("ArrowUp");
-    expect(focusRoot.activeElement).toBe(menuItems()[5]);
+    expect(focusRoot.activeElement).toBe(menuItems()[6]);
     expect(pressMenuKey("Home").defaultPrevented).toBe(true);
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     expect(processActions).not.toHaveBeenCalled();
@@ -400,7 +416,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(draggableProps.expanded).toBe(true);
 
     act(() => draggableProps.onStart());
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
     act(() => draggableProps.onMove());
 
     expect(menuItems()).toHaveLength(0);
@@ -412,7 +428,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     act(() => draggableProps.onStart());
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
     expect(draggableProps.expanded).toBe(true);
   });
 
@@ -432,7 +448,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("entering video fullscreen closes an open menu", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     mockIsVideoFullscreen = true;
     act(() =>
