@@ -46,6 +46,8 @@ Before adopting new code:
 4. run tests and dependency/security checks;
 5. record provenance and changes.
 
-The screenshot UI is part of the webpage DOM; the host page can potentially inspect displayed crops and text. It is not a vault for secrets. OCR runs in a private offscreen extension document with bundled assets and closes after each job. The offscreen permission enables local workers without granting new host access.
+The screenshot UI is part of the webpage DOM; the host page can potentially inspect displayed crops and text. It is not a vault for secrets. Enhanced OCR connects only to the desktop loopback service at 127.0.0.1:8990, after verifying its service identity. Redirects are forbidden; no cloud fallback exists. The browser UI remains part of the page DOM. Tesseract and the offscreen permission have been removed.
 
 The downloads permission saves only a validated PNG on an explicit Save click to the browser download folder; this implementation does not read download history.
+
+Desktop screenshots and OCR stay in local process memory. Desktop translation uses an authenticated, bundled MTranServer child on 127.0.0.1:8991 in offline mode, with remote fetch and outbound sockets blocked. It receives only text after an explicit Translate click. No image history, telemetry, automatic screenshot saves, runtime model downloads, update checks or startup registration. Python blocks outbound Internet sockets/DNS and non-loopback binding. This does not protect against other malicious local software, nor prevent Windows clipboard sync after a user explicitly copies content. See docs/DESKTOP.md.

@@ -36,7 +36,6 @@ const extWebpack = (config, env) => {
     options: paths.appSrc + "/options.js", // 扩展设置页面
     background: paths.appSrc + "/background.js", // 扩展后台常驻脚本
     content: paths.appSrc + "/content.js", // 内容注入核心脚本
-    screenshot: paths.appSrc + "/screenshot.js",
     "injector-subtitle": paths.appSrc + "/injector-subtitle.js", // 字幕注入脚本
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
   };
@@ -56,13 +55,6 @@ const extWebpack = (config, env) => {
 
   // 4. 重新注入为扩展程序定制的配置
   config.plugins.push(
-    new HtmlWebpackPlugin({
-      inject: true,
-      chunks: ["screenshot"],
-      template: paths.appPublic + "/screenshot-template.html",
-      filename: "screenshot.html",
-      minify,
-    }),
     // 为设置页定制生成对应的 HTML
     new HtmlWebpackPlugin({
       inject: true,

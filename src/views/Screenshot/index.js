@@ -48,7 +48,6 @@ export default function Screenshot() {
   const [apis, setApis] = useState([]);
   const [slug, setSlug] = useState("");
   const [to, setTo] = useState("zh-CN");
-  const [language, setLanguage] = useState("eng+chi_sim");
   const ocrRef = useRef(null);
   const abortRef = useRef(null);
   const jobRef = useRef(0);
@@ -175,7 +174,7 @@ export default function Screenshot() {
       try {
         const result = await browser.runtime.sendMessage({
           action: "charlieScreenshotOcr",
-          args: { image, language, job: request },
+          args: { image, job: request },
         });
         if (job !== jobRef.current) return;
         if (result.error) throw new Error(result.error);
@@ -183,7 +182,7 @@ export default function Screenshot() {
         setTranslation("");
         setStatus(
           result.text.trim()
-            ? "识字完成。可修改原文，再点击翻译。"
+            ? `${result.engine || "增强识字"} 完成。可修改原文，再点击翻译。`
             : "未识别到文字，请框选更清晰的区域。"
         );
       } finally {
@@ -248,18 +247,9 @@ export default function Screenshot() {
       </div>
       <p role="status">{status}</p>
       {image && <img className="preview" src={image} alt="框选截图预览" />}
-      <label>
-        识字语言
-        <select
-          disabled={busy}
-          value={language}
-          onChange={(event) => setLanguage(event.target.value)}
-        >
-          <option value="eng+chi_sim">英文＋简体中文</option>
-          <option value="eng">英文</option>
-          <option value="chi_sim">简体中文</option>
-        </select>
-      </label>
+      <p className="note">
+        增强识字在本机运行，不需要 Key。请保持桌面版开启，浏览器即可共用 OCR。
+      </p>
       <label>
         原文
         <textarea
