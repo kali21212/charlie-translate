@@ -1,21 +1,18 @@
 # Charlie Translate｜查理翻译
 
-> Privacy-first enhanced derivative of KISS Translator. Upstream: [fishjar/kiss-translator](https://github.com/fishjar/kiss-translator). Distributed under GPL-3.0; upstream attribution and history are preserved. See [UPSTREAM.md](UPSTREAM.md) and [CHANGELOG.md](CHANGELOG.md).
->
-> Charlie V1 defaults to local MTranServer on fresh installs. Cloud providers require activation. Existing saved settings are preserved. The upstream KISS feature set remains available underneath.
+以本机翻译和隐私保护为重点的网页双语、划词翻译扩展。新安装默认使用本地 MTranServer，云服务需要主动启用，已有设置会保留。
 
-## Charlie V1 goals
+## 功能
 
-- Local-first translation path with **MTranServer**; no GPT/Codex usage is required for ordinary translation.
-- Keep cloud/AI providers optional rather than defaulting routine translation to a large model.
-- Preserve bilingual page, selection, hover, input, subtitle, rule and glossary capabilities from KISS Translator.
-- Protect account/security surfaces from automatic editable-input and clipboard translation.
-- Maintain a clean upstream sync path and auditable Charlie-only changelog.
-- Prepare an agent-facing translation interface (WebMCP/MCP) as a later governed phase after the browser-extension baseline is stable.
+- 网页双语对照、划词翻译、鼠标悬停翻译和输入框翻译。
+- YouTube 字幕翻译、站点规则和术语词典。
+- 本地 MTranServer 接口，以及可选的云翻译和 AI 接口。
+- 敏感页面的输入翻译与自动剪贴板读取保护。
+- 保留上游同步路径，使用测试、依赖审计和 CI 验证修改。
 
 ## 安装和本机翻译
 
-Charlie 当前以源码和本地 Chrome 构建交付；下方上游商店链接安装的是 KISS Translator。
+Charlie 当前以源码和本地 Chrome 构建交付。
 
 1. 安装 Node.js 22 和 Corepack，运行 `corepack pnpm@10.15.1 install --frozen-lockfile`。
 2. 运行 `corepack pnpm@10.15.1 build:chrome`。
@@ -40,232 +37,12 @@ Charlie 当前以源码和本地 Chrome 构建交付；下方上游商店链接�
 
 有效 PR、Issue 和默认分支提交可形成 GitHub 贡献记录；数量不保证任何平台的额外权限或配额。源码继续按 GPL-3.0 分发，欢迎真实、可验证的贡献。
 
----
+## 开发与贡献
 
-## Upstream project
+问题反馈请提交到 [Charlie Issues](https://github.com/kali21212/charlie-translate/issues)。开发和提交规范见 [CONTRIBUTING.md](CONTRIBUTING.md)，版本改动见 [CHANGELOG.md](CHANGELOG.md)。
 
-# KISS Translator 简约翻译
+## 来源与许可证
 
-[English](README.en.md) | [中文](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
+Charlie Translate 基于 [KISS Translator 简约翻译](https://github.com/fishjar/kiss-translator)二次开发，感谢原作者及贡献者。源码按 [GNU GPL-3.0](LICENSE)分发，保留适用的上游版权、许可及免责声明；分发修改版时须履行对应源码等许可证义务。
 
-一个简约、开源的 [双语对照翻译扩展 & 油猴脚本](https://github.com/fishjar/kiss-translator)。
-
-[kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
-
-## 感谢以下赞助商对本项目的支持
-
-<table>
-  <tr>
-    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="600" /></td>
-    <td>
-      <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
-        <b>APIMart</b> 是专注 AI 图片/视频生成的低价 API 平台，GPT-Image-2 低至 $0.006/张，1 美元可出图 160+ 张。图片、视频一套异步 API 通吃，提交任务拿 ID、回调取结果，跑批万张不超时、换模型不改代码。按量付费、无月费，通过此注册链接注册即可开用。
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
-    <td>
-      <a href="https://platform.ephone.ai/" target="_blank">
-        <b>ePhone AI</b> 是一个面向开发者的 AI 模型 API 中转与聚合平台，支持 OpenAI、Claude、Gemini、DeepSeek、GLM 等多家大模型。
-      </a>
-    </td>
-  </tr>
-</table>
-
-## 特性
-
-- [x] 保持简约
-- [x] 开放源代码
-- [x] 适配常见浏览器
-  - [x] Chrome/Edge
-  - [x] Firefox
-  - [x] Kiwi (Android)
-  - [x] Orion (iOS)
-  - [x] Safari
-  - [x] Thunderbird
-- [x] 支持多种翻译服务
-  - [x] Google/Microsoft
-  - [x] Tencent/Volcengine
-  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty
-  - [x] DeepL/DeepLX
-  - [x] AzureAI/CloudflareAI
-  - [x] Chrome浏览器内置AI翻译(BuiltinAI)
-- [x] 覆盖常见翻译场景
-  - [x] 网页双语对照翻译
-  - [x] 输入框翻译
-    - 通过快捷键立即将输入框内文本翻译成其他语言
-  - [x] 划词翻译
-    - [x] 任意页面打开翻译框，可用多种翻译服务对比翻译
-    - [x] 英文词典翻译
-    - [x] 收藏词汇
-  - [x] 鼠标悬停翻译
-  - [x] YouTube 字幕翻译
-    - 支持任意翻译服务对视频字幕进行翻译并双语显示
-    - 内置基础的字幕合并与断句算法，提升翻译效果
-    - 支持AI断句功能，可进一步提升翻译质量
-    - 自定义字幕样式
-- [x] 支持多样翻译效果
-  - [x] 支持自动识别文本与手动规则两种模式
-    - 自动识别文本模式使得绝大部分网站无需编写规则也能翻译完整
-    - 手动规则模式，可以针对特定网站极致优化
-  - [x] 自定义译文样式
-  - [x] 支持富文本翻译及显示，能够尽量保留原文中的链接及其他文本样式
-  - [x] 支持仅显示译文（隐藏原文）
-- [x] 翻译接口高级功能
-  - [x] 通过自定义接口，理论上支持任何翻译接口
-  - [x] 聚合批量发送翻译文本
-  - [x] 支持流式传输，实时显示翻译结果
-  - [x] 支持AI上下文会话记忆功能，提升翻译效果
-  - [x] 自定义AI术语词典
-  - [x] 所有接口均支持Hook和自定义参数等高级功能
-- [x] 跨客户端数据同步
-  - [x] KISS-Worker（cloudflare/docker）
-  - [x] WebDAV
-- [x] 自定义翻译规则
-  - [x] 规则订阅/规则分享
-  - [x] 自定义专业术语
-- [x] 自定义快捷键
-  - `Alt+Q` 开启翻译
-  - `Alt+D` 打开独立翻译窗
-  - `Alt+K` 打开设置弹窗
-  - `Alt+S` 打开翻译弹窗/翻译选中文字
-  - `Alt+O` 打开设置页面
-  - `Alt+I` 输入框翻译
-
-## 安装
-
-> 注：基于以下原因，建议优先使用浏览器扩展
->
-> - 浏览器扩展的功能更完整（本地语言识别、右键菜单等）
-> - 油猴脚本会遇到更多使用上的问题（跨域问题、脚本冲突等）
-
-- [x] 浏览器扩展
-  - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
-    - [x] Kiwi (Android)
-    - [x] Orion (iOS)
-  - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
-  - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
-  - [ ] Safari
-    - [ ] Safari (Mac)
-    - [ ] Safari (iOS) 
-  - [x] Thunderbird [下载地址](https://github.com/fishjar/kiss-translator/releases)
-- [x] 油猴脚本
-  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
-    - [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
-  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)
-
-## 关联项目
-
-- 数据同步服务: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
-  - 可用于本项目的数据同步服务。
-  - 亦可用于分享个人的私有规则列表。
-  - 自己部署，自己管理，数据私有。
-- 社区订阅规则: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
-  - 提供社区维护的，最新最全的订阅规则列表。
-  - 求助规则相关的问题。
-
-## 常见问题
-
-### 如何设置快捷键
-
-在插件管理那里设置，例如： 
-
-- chrome [chrome://extensions/shortcuts](chrome://extensions/shortcuts)
-- firefox [about:addons](about:addons)
-
-### 规则设置的优先级是如何的
-
-个人规则 > 订阅规则 > 全局规则
-
-其中全局规则优先级最低，但非常重要，相当于兜底规则。
-
-### 如何在网页上直接编辑规则
-
-打开网页翻译面板，点击「编辑网站规则」。选择规则用途后点击「选取元素」，在网页上点击锁定元素；通过祖先路径调整层级，比较不同定位候选及匹配数量，点击「确认添加定位」加入草稿，最后点击主面板的「保存规则」保存。也可以通过「手动添加」输入 CSS 选择器。选取链接时不会跳转，右键可取消选取；副面板中的 ← / → 可按页面顺序浏览匹配元素。
-
-- 支持翻译目标、排除区域、根容器、保留原文和段落边界。修改、删除、撤销和重做都只更新当前草稿及预览，点击「保存规则」后才写入本地并触发同步。
-- 打开编辑器不会自动保存规则，也不会改变自动扫描设置。「自动扫描页面」启用时，目标选择器不是翻译白名单；需要严格指定目标时可选择「禁用」。删除一条定位不等于排除区域，其他规则或自动扫描仍可能覆盖它。
-- 「恢复此组继承」重新使用订阅／全局值；「清空此组」将草稿中的该组设为显式空选择器。清空根容器后不扫描页面。
-- 没有匹配的个人规则时，新规则的默认网站匹配与 popup 的「网域」一致，例如 `www.bbc.com`，可从下拉列表选择 `*.bbc.com` 等范围，也可输入自定义匹配规则。已有匹配的个人规则会直接载入编辑，保存时保留未修改的其他配置；已有 `hostname:` 规则仍兼容，订阅内容通过个人规则覆盖。
-- 有未保存的草稿时，退出或重新读取规则会提示选择「保存规则」「不保存」或「继续编辑」。保存失败或检测到外部冲突会保留草稿；重新读取会替换草稿并清空撤销历史。页面路由变化时也会先提醒处理草稿，避免直接丢失修改。撤销历史仅保留在当前编辑会话。
-- 「预计翻译范围」点击一次显示高亮，再次点击关闭，按钮会显示当前开关状态。范围预览使用草稿规则，只查看当前已加载 DOM，不发送翻译请求；内部排除项、保留项和后续语言／长度过滤仍然生效。「查看译文」会执行实际翻译。退出时应用已保存的规则，并恢复进入前的翻译和交互开关；未保存的预览修改不会留在页面上。
-
-当前支持桌面普通 DOM 网页及其动态内容。iframe、Shadow DOM 内部、Canvas 文字和触屏专用操作暂未纳入可视化选取。油猴同源页面通过浏览器 Web Locks 协调写入；不同源页面共享的 GM 存储没有跨源原子事务保证，编辑器会在检测到外部变更时提示重新读取。
-
-### 接口（Ollama等）测试失败
-
-一般接口测试失败常见有以下几种原因：
-
-- 地址填错了：
-  - 比如 `Ollama` 有原生接口地址和 `Openai` 兼容的地址，本插件目前统一支持 `Openai` 兼容的地址，不支持 `Ollama` 原生接口地址
-- 某些AI模型不支持聚合翻译：
-  - 此种情况可以选择禁用聚合翻译或通过自定义接口的方式来使用。
-  - 或通过自定义接口的方式来使用，详情参考： [自定义接口示例文档](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
-- 某些AI模型的参数不一致：
-  - 比如 `Gemini` 原生接口参数非常不一致，部分版本的模型不支持某些参数会导致返回错误。
-  - 此种情况可以通过 `Hook` 修改请求 `body` ,或者更换为 `Gemini2` (`Openai` 兼容的地址)
-- 服务器跨域限制访问，返回403错误：
-  - 比如 `Ollama` 启动时须添加环境变量 `OLLAMA_ORIGINS=*`, 参考：https://github.com/fishjar/kiss-translator/issues/174
-
-### 填写的接口在油猴脚本不能使用
-
-油猴脚本需要增加域名白名单，否则不能发出请求。
-
-### 如何设置自定义接口的hook函数
-
-自定义接口功能非常强大、灵活，理论可以接入任何翻译接口。
-
-示例参考： [custom-api_v2.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
-
-### 如何直接进入油猴脚本设置页面
-
-设置页面地址： https://fishjar.github.io/kiss-translator/options.html
-
-## 未来规划 
-
- 本项目为业余开发，无严格时间表，欢迎社区共建。以下为初步设想的功能方向：
-
-- [x] **聚合发送文本**：优化请求策略，减少翻译接口调用次数，提升性能。
-- [x] **增强富文本翻译**：支持更复杂的页面结构和富文本内容的准确翻译。
-- [x] **强化自定义/AI 接口**：支持流式传输、上下文记忆、多轮对话等高级 AI 功能。
-- [x] **英文词典备灾机制**：当翻译服务失效时，可切换其他词典或 fallback 到本地词典查询。
-- [x] **优化 YouTube 字幕支持**：改进流式字幕的合并与翻译体验，减少断句。
-
-- [ ] **支持边缘AI计算**：实现本地轻量的 LLM、ASR、OCR、TTS 辅助翻译。
-- [ ] **分布式共享平台**：引入分布式共享机制，用于分享字幕、规则等。
-- [ ] **支持文档翻译**：支持翻译 TXT、PDF、图片、漫画等。
-- [ ] **翻译Agent**：自研翻译Aagent，实现智能化翻译功能。
-- [ ] **项目重构**：重新规划整理功能模块，使用现代框架和技术重构整个项目。
- 
- 如果你对某个方向感兴趣，欢迎在 [Issues](https://github.com/fishjar/kiss-translator/issues) 中讨论或提交 PR！
-
-## 开发指引
-
-```sh
-git clone https://github.com/fishjar/kiss-translator.git
-cd kiss-translator
-git checkout dev # 提交PR建议推送到dev分支
-pnpm install
-pnpm build
-```
-
-### 外部触发示例
-
-```js
-// `toggle_translate`   切换翻译
-// `toggle_styles`      切换样式
-// `toggle_popup`       打开/关闭控制面板
-// `toggle_transbox`    打开/关闭翻译弹窗
-// `toggle_hover_node`  翻译鼠标悬停段落
-// `input_translate`    翻译输入框
-window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "toggle_translate" }}));
-```
-
-## 交流
-
-- 加入 [Telegram 群](https://t.me/+RRCu_4oNwrM2NmFl)
-
-## 赞赏
-
-![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
+上游基线、复用范围和同步流程见 [UPSTREAM.md](UPSTREAM.md)。本仓库首页介绍 Charlie 版本；上游完整说明可在原项目查看。
