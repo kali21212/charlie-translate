@@ -85,7 +85,7 @@ jest.mock("@mui/material/CircularProgress", () => {
 jest.mock("./Layout", () => {
   return function MockLayout() {
     const React = require("react");
-    const { Link, Outlet } = require("react-router-dom");
+    const { Link, Outlet } = require("react-router");
     return React.createElement(
       "div",
       {},

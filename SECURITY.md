@@ -27,6 +27,8 @@ Upstream `<all_urls>`, scripting, storage and other feature permissions remain. 
 
 See [DEPENDENCY_AUDIT.md](docs/DEPENDENCY_AUDIT.md) for baseline, runtime/build classification and residual findings. `audit:dependencies` checks full and production trees with exact advisory/version/severity/path exceptions. New exposure, audit errors and expired exceptions fail CI; review by 2026-11-30. Remaining findings are not described as fixed.
 
+Production audit must have zero vulnerabilities, with no runtime exceptions. React Router was migrated to 7.18.4 to repair both previously retained medium runtime advisories. The remaining exceptions cover development/build dependencies only.
+
 Development start scripts bind to `127.0.0.1`. Legacy CRA server and build SVG vulnerabilities need a tested tooling migration; do not expose the dev server publicly or build untrusted SVGs.
 
 ## Reporting vulnerabilities

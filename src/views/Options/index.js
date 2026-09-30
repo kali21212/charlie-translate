@@ -1,4 +1,4 @@
-import { Routes, Route, HashRouter, useLocation } from "react-router-dom";
+import { Routes, Route, HashRouter, useLocation } from "react-router";
 import About from "./About";
 import Rules from "./Rules";
 import Setting from "./Setting";

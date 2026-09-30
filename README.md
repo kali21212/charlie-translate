@@ -36,6 +36,8 @@ Charlie 当前以源码和本地 Chrome 构建交付；下方上游商店链接�
 
 开发检查：`corepack pnpm@10.15.1 test:charlie`、`test:dependency-compatibility`、`audit:dependencies`、Chrome 构建和 `git diff --check`。剩余依赖问题见 [依赖审计](docs/DEPENDENCY_AUDIT.md)。
 
+生产依赖审计必须为 **0 漏洞**，不允许运行时例外。React Router 已升级至修复版 7.18.4；完整依赖树剩余 11 项仅属开发/构建工具，仍需要后续工具链迁移。
+
 有效 PR、Issue 和默认分支提交可形成 GitHub 贡献记录；数量不保证任何平台的额外权限或配额。源码继续按 GPL-3.0 分发，欢迎真实、可验证的贡献。
 
 ---

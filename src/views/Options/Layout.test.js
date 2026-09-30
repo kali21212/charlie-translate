@@ -26,7 +26,7 @@ test("uses the wide content rail for dense workspace pages", () => {
   expect(isWideOptionsPage("/input")).toBe(false);
 });
 
-jest.mock("react-router-dom", () => ({
+jest.mock("react-router", () => ({
   Outlet: () => {
     const React = require("react");
     return React.createElement("a", { href: "#content" }, "content");

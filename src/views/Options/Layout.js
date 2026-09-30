@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router";
 import Header from "./Header";
 import Navigator from "./Navigator";
 import { useI18n } from "../../hooks/I18n";

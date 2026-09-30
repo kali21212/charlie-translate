@@ -39,6 +39,14 @@ for (const scope of ["all", "prod"]) {
     `tmp/dependency-audit-${scope}.json`,
     JSON.stringify(report, null, 2) + "\n"
   );
+  if (
+    scope === "prod" &&
+    Object.values(report.metadata.vulnerabilities).some((count) => count > 0)
+  ) {
+    throw new Error(
+      "Production dependency audit must have zero vulnerabilities"
+    );
+  }
   for (const advisory of Object.values(report.advisories)) {
     const exception = allowed.get(advisory.github_advisory_id);
     if (
