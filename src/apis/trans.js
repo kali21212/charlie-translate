@@ -33,6 +33,7 @@ import {
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_MTRAN,
   API_SPE_TYPES,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
@@ -1678,6 +1679,7 @@ const genReqFuncs = {
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
   [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_REQUESTY]: genRequesty,
+  [OPT_TRANS_MTRAN]: genCustom,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 
@@ -2095,6 +2097,7 @@ export const parseTransRes = async (
         history.addPair(userMsg, modelMsg);
       }
       return parseAIRes(modelMsg?.content, useBatchFetch, batchProtocol);
+    case OPT_TRANS_MTRAN:
     case OPT_TRANS_CUSTOMIZE:
       if (useBatchFetch) {
         return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
@@ -2138,6 +2141,7 @@ function parseDictRes(res, apiType) {
       return geminiResponseText(res);
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text || "";
+    case OPT_TRANS_MTRAN:
     case OPT_TRANS_CUSTOMIZE:
       if (typeof res === "string") return res;
       return res?.text || res?.result || "";

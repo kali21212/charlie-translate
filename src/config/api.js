@@ -82,6 +82,7 @@ export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 
 export const OPT_TRANS_ORCAROUTER = "OrcaRouter"; // OrcaRouter 多模型聚合 API 翻译
 export const OPT_TRANS_REQUESTY = "Requesty"; // Requesty 多模型聚合 API 翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
+export const OPT_TRANS_MTRAN = "MTranServer"; // Charlie local-first offline translator via MTranServer /kiss
 
 // 内置支持的翻译引擎
 export const OPT_ALL_TRANS_TYPES = [
@@ -118,6 +119,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_CUSTOMIZE,
 ];
 
@@ -143,6 +145,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_VOLCENGINE,
     OPT_TRANS_YANDEXFREE,
     OPT_TRANS_QWENMT,
+    OPT_TRANS_MTRAN,
   ]),
   // 大语言模型 AI 翻译引擎
   ai: new Set([
@@ -190,6 +193,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_REQUESTY,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
+    OPT_TRANS_MTRAN,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持段落聚合（批处理合并）翻译的引擎
@@ -218,6 +222,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_REQUESTY,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
+    OPT_TRANS_MTRAN,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持带历史会话（Context）关联的翻译引擎
@@ -1137,6 +1142,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["zh-CN", "zh"],
     ["zh-TW", "zh"],
   ]),
+  [OPT_TRANS_MTRAN]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_NAME,
 };
 
@@ -1755,6 +1761,15 @@ const defaultApiOpts = {
     modelListUrl: "https://router.requesty.ai/v1/models",
     model: "openai/gpt-4o-mini",
     ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_MTRAN]: {
+    ...defaultApi,
+    url: "http://localhost:8989/kiss",
+    useBatchFetch: true,
+    fetchLimit: 8,
+    fetchInterval: 20,
+    batchSize: 20,
+    batchLength: 10000,
   },
   [OPT_TRANS_CUSTOMIZE]: {
     ...defaultApi,
