@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -30,11 +33,17 @@ jobs:
         env:
           CI: "true"
         run: |
-          corepack pnpm@10.15.1 exec react-app-rewired test --runInBand --watchAll=false             src/libs/securityGuard.test.js             src/config/api.test.js             src/apis/trans.mtran.test.js
+          corepack pnpm@10.15.1 test:charlie
+
+      - name: Runtime dependency compatibility
+        run: corepack pnpm@10.15.1 test:dependency-compatibility
+
+      - name: Dependency audit with reviewed scope boundaries
+        run: corepack pnpm@10.15.1 audit:dependencies
 
       - name: Build Chrome extension
         run: |
           corepack pnpm@10.15.1 build:chrome
 
       - name: Diff whitespace check
-        run: git diff --check
+        run: git diff --check HEAD^ HEAD

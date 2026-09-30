@@ -193,7 +193,6 @@ export const API_SPE_TYPES = {
     OPT_TRANS_REQUESTY,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
-    OPT_TRANS_MTRAN,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持段落聚合（批处理合并）翻译的引擎
@@ -1779,9 +1778,7 @@ const defaultApiOpts = {
 };
 
 const DEFAULT_ENABLED_API_TYPES = new Set([
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_BUILTINAI,
 ]);
 
@@ -1854,7 +1851,7 @@ export function normalizeApiModelListUrls(transApis = []) {
   return hasChanges ? nextApis : transApis;
 }
 
-export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
+export const DEFAULT_API_TYPE = OPT_TRANS_MTRAN;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
   (a) => a.apiType === DEFAULT_API_TYPE
 );

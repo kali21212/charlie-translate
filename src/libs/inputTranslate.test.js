@@ -118,6 +118,7 @@ describe("InputTranslator input button", () => {
   afterEach(() => {
     translator.disable();
     document.body.innerHTML = "";
+    window.history.replaceState({}, "", "/");
   });
 
   test.each([
@@ -269,4 +270,23 @@ describe("InputTranslator input button", () => {
     );
     expect(target.value).toBe("First isn't & simple\n\nSecond");
   });
+
+  test.each(["route", "field", "token"])(
+    "does not dispatch input text after a sensitive %s appears",
+    async (change) => {
+      apiTranslate.mockClear();
+      const target = document.createElement("textarea");
+      target.value = "private data";
+      focusTarget(translator, target);
+      if (change === "route") window.history.replaceState({}, "", "/#/login");
+      if (change === "field")
+        document.body.insertAdjacentHTML(
+          "beforeend",
+          '<input type="password">'
+        );
+      if (change === "token") target.name = "api_token";
+      await translator.handleTranslate({ isBtnTrigger: true });
+      expect(apiTranslate).not.toHaveBeenCalled();
+    }
+  );
 });

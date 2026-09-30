@@ -7,9 +7,8 @@ import {
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_DEEPSEEK,
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_OPENAI,
   OPT_TRANS_TENCENT,
 } from "../config";
@@ -293,7 +292,7 @@ describe("settings storage migration", () => {
     });
   });
 
-  test("enables only the initial four services for a fresh installation", async () => {
+  test("enables only local/native services for a fresh installation", async () => {
     const setting = await getSettingWithDefault();
 
     expect(setting.transApis).toHaveLength(DEFAULT_API_LIST.length);
@@ -301,12 +300,7 @@ describe("settings storage migration", () => {
       setting.transApis
         .filter((api) => !api.isDisabled)
         .map((api) => api.apiType)
-    ).toEqual([
-      OPT_TRANS_BUILTINAI,
-      OPT_TRANS_GOOGLE,
-      OPT_TRANS_GOOGLE_2,
-      OPT_TRANS_MICROSOFT,
-    ]);
+    ).toEqual([OPT_TRANS_BUILTINAI, OPT_TRANS_MTRAN]);
   });
 
   test.each([1, SETTINGS_VERSION_V2, SETTINGS_VERSION_V3])(

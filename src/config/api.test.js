@@ -22,11 +22,10 @@ import {
   OPT_TRANS_CLAUDE,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
   OPT_TRANS_ALIYUNBAILIAN,
   OPT_TRANS_APIMART,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENCODEGO,
@@ -38,8 +37,8 @@ import {
   OPT_TRANS_ZAI,
 } from "./api";
 
-test("uses Microsoft as the fallback default API", () => {
-  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_MICROSOFT);
+test("uses local MTranServer as the fallback default API", () => {
+  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_MTRAN);
 });
 
 test("includes Microsoft in the built-in API list", () => {
@@ -48,18 +47,13 @@ test("includes Microsoft in the built-in API list", () => {
   ).toBe(true);
 });
 
-test("enables only the four initial translators while retaining every preset", () => {
+test("enables only local/native translators while retaining every preset", () => {
   expect(DEFAULT_API_LIST.map((api) => api.apiType)).toEqual(
     OPT_ALL_TRANS_TYPES
   );
   expect(
     DEFAULT_API_LIST.filter((api) => !api.isDisabled).map((api) => api.apiType)
-  ).toEqual([
-    OPT_TRANS_BUILTINAI,
-    OPT_TRANS_GOOGLE,
-    OPT_TRANS_GOOGLE_2,
-    OPT_TRANS_MICROSOFT,
-  ]);
+  ).toEqual([OPT_TRANS_BUILTINAI, OPT_TRANS_MTRAN]);
   expect(
     DEFAULT_API_LIST.filter((api) => api.isDisabled).every(
       (api) => api.sortOrder === 999

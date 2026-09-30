@@ -5,7 +5,7 @@
   "version": "2.1.0",
   "default_locale": "en",
   "author": "Gabe<yugang2002@gmail.com>",
-  "homepage_url": "https://github.com/fishjar/kiss-translator",
+  "homepage_url": "https://github.com/kali21212/charlie-translate",
   "background": {
     "scripts": [
       "background.js"

@@ -4,6 +4,13 @@
 - Added Charlie privacy guard for credential-sensitive pages.
 - Added provenance, security baseline, contribution guidance, and CI governance.
 - Charlie-specific changes remain GPL-3.0 and are maintained on top of the upstream KISS history.
+- Fresh installs now use local MTranServer for page, selection, input and subtitles; cloud presets, online dictionaries/suggestions, remote rules and update checks require opt-in. Saved choices are preserved.
+- MTranServer restricts endpoints to loopback, supports optional tokens, exposes URL/Key controls and never switches automatically to cloud.
+- Privacy checks now cover hash/encoded routes, late secret fields, open shadow roots and the real popup clipboard boundary; navigation/inspection failures stop reads.
+- Extension names/homepages identify Charlie while retaining upstream author/license attribution.
+- Pinned pnpm 10.15.1, moved react-scripts to devDependencies, applied compatible upgrades/scoped overrides. Full audit counts: 136 -> 13; production: two moderate, no high/critical. Residual scope is documented in docs/DEPENDENCY_AUDIT.md.
+- Added real runtime dependency compatibility tests and exact-head CI with reviewed audit exceptions.
+- MTranServer validates post-hook URLs, blocks Chrome HTTP redirects and rejects malformed or incomplete batch responses. Clipboard text is discarded if navigation occurs during reading.
 
 ---
 

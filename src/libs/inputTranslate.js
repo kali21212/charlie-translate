@@ -14,6 +14,7 @@ import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { createLoadingSVG } from "./svg";
 import { logger } from "./log";
+import { isSensitivePage } from "./securityGuard";
 
 // ==========================================
 // 核心工具函数：DOM 查找与状态判断
@@ -362,6 +363,10 @@ export class InputTranslator {
   // ============================
 
   handleFocusIn() {
+    if (isSensitivePage(window.location.href, document)) {
+      this.hideFloatButton();
+      return;
+    }
     // [修复问题2-C]：如果刚刚触发了 blur 延时还没执行，立刻清除它，防止按钮闪现后消失
     if (this.#blurTimer) {
       clearTimeout(this.#blurTimer);
@@ -536,6 +541,8 @@ export class InputTranslator {
    * @param {boolean} options.isBtnTrigger 是否由悬浮按钮触发
    */
   async handleTranslate({ isBtnTrigger = false } = {}) {
+    // Recheck at dispatch: SPA navigation and late secret fields can bypass startup guards.
+    if (isSensitivePage(window.location.href, document)) return;
     logger.debug("handle input translate");
 
     // 1. 获取真正的焦点元素

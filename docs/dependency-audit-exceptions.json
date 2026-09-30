@@ -1,0 +1,122 @@
+{
+  "reviewBy": "2026-11-30",
+  "exceptions": [
+    {
+      "id": "GHSA-9jgg-88mc-972h",
+      "module": "webpack-dev-server",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["4.15.2"],
+      "paths": [".>react-scripts>webpack-dev-server"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    },
+    {
+      "id": "GHSA-4v9v-hfq4-rm2v",
+      "module": "webpack-dev-server",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["4.15.2"],
+      "paths": [".>react-scripts>webpack-dev-server"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    },
+    {
+      "id": "GHSA-79cf-xcqc-c78w",
+      "module": "webpack-dev-server",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["4.15.2"],
+      "paths": [".>react-scripts>webpack-dev-server"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    },
+    {
+      "id": "GHSA-w5hq-g745-h8pq",
+      "module": "uuid",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["8.3.2"],
+      "paths": [".>react-scripts>webpack-dev-server>sockjs>uuid"],
+      "reason": "Build/dev-server SockJS v4 generation only; advisory concerns v3/v5/v6. v11 forces API/engine changes."
+    },
+    {
+      "id": "GHSA-mx8g-39q3-5c79",
+      "module": "webpack-dev-server",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["4.15.2"],
+      "paths": [".>react-scripts>webpack-dev-server"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    },
+    {
+      "id": "GHSA-f5vj-f2hx-8m93",
+      "module": "webpack-dev-server",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["4.15.2"],
+      "paths": [".>react-scripts>webpack-dev-server"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    },
+    {
+      "id": "GHSA-m28w-2pqf-7qgj",
+      "module": "webpack-dev-server",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["4.15.2"],
+      "paths": [".>react-scripts>webpack-dev-server"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    },
+    {
+      "id": "GHSA-wrjc-x8rr-h8h6",
+      "module": "react-router",
+      "severity": "moderate",
+      "scope": "runtime",
+      "versions": ["6.30.6"],
+      "paths": [".>react-router-dom>react-router"],
+      "reason": "Declarative HashRouter uses static local routes; no attacker-supplied navigation, SSR, framework or data hydration. Keep v6 compatibility until tested migration."
+    },
+    {
+      "id": "GHSA-337j-9hxr-rhxg",
+      "module": "react-router",
+      "severity": "moderate",
+      "scope": "runtime",
+      "versions": ["6.30.6"],
+      "paths": [".>react-router-dom>react-router"],
+      "reason": "Declarative HashRouter uses static local routes; no attacker-supplied navigation, SSR, framework or data hydration. Keep v6 compatibility until tested migration."
+    },
+    {
+      "id": "GHSA-2p49-hgcm-8545",
+      "module": "svgo",
+      "severity": "high",
+      "scope": "dev-only",
+      "versions": ["1.3.2"],
+      "paths": [".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo"],
+      "reason": "Static repository SVGs in build-only SVGR/SVGO 1 pipeline; no SVG sanitization boundary. v2 config is incompatible with upstream SVGR 5."
+    },
+    {
+      "id": "GHSA-w27v-7q3p-w38r",
+      "module": "svgo",
+      "severity": "high",
+      "scope": "dev-only",
+      "versions": ["1.3.2"],
+      "paths": [".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo"],
+      "reason": "Static repository SVGs in build-only SVGR/SVGO 1 pipeline; no SVG sanitization boundary. v2 config is incompatible with upstream SVGR 5."
+    },
+    {
+      "id": "GHSA-4vpr-x523-8j87",
+      "module": "svgo",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["1.3.2"],
+      "paths": [".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo"],
+      "reason": "Static repository SVGs in build-only SVGR/SVGO 1 pipeline; no SVG sanitization boundary. v2 config is incompatible with upstream SVGR 5."
+    },
+    {
+      "id": "GHSA-g84c-rxfj-3j2c",
+      "module": "webpack-dev-middleware",
+      "severity": "high",
+      "scope": "dev-only",
+      "versions": ["5.3.4"],
+      "paths": [".>react-scripts>webpack-dev-server>webpack-dev-middleware"],
+      "reason": "CRA 5 development server only, absent from Chrome artifact. Fix requires incompatible dev-server/middleware major upgrade; bind development server to loopback and use trusted assets."
+    }
+  ]
+}
