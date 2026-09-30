@@ -1,5 +1,7 @@
 # Security Policy
 
+Screenshot/OCR is explicitly initiated. Pixels remain local and the crop is displayed in the webpage UI; bundled OCR workers/WASM/models run locally. Only clicking Translate sends text to the chosen provider. Sensitive fields, document/viewport revalidation, image limits and OCR timeout reduce exposure but cannot identify all secrets in images. No screenshot history is persisted. Extension CSP adds `wasm-unsafe-eval` for local WebAssembly, not remote scripts or JavaScript eval. Provenance: docs/SCREENSHOT.md and docs/ocr-assets.json.
+
 ## Design goals
 
 Charlie Translate is intended to be privacy-first and least-privilege.
@@ -43,3 +45,7 @@ Before adopting new code:
 3. review network, shell, credential, and permission behavior;
 4. run tests and dependency/security checks;
 5. record provenance and changes.
+
+The screenshot UI is part of the webpage DOM; the host page can potentially inspect displayed crops and text. It is not a vault for secrets. OCR runs in a private offscreen extension document with bundled assets and closes after each job. The offscreen permission enables local workers without granting new host access.
+
+The downloads permission saves only a validated PNG on an explicit Save click to the browser download folder; this implementation does not read download history.

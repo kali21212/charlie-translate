@@ -1,4 +1,10 @@
+import { recognizeScreenshot, cancelScreenshotOcr } from "./libs/screenshotOcr";
 import browser from "webextension-polyfill";
+import {
+  captureScreenshot,
+  saveScreenshot,
+  SCREENSHOT_CAPTURE,
+} from "./libs/screenshotCapture";
 import { writeSiteRule } from "./libs/ruleEditorStorage";
 import {
   MSG_FETCH,
@@ -719,6 +725,18 @@ const injectToCurrentTab = async (func, args) => {
 
 // 后台消息指令与对应处理器映射表
 const messageHandlers = {
+  charlieScreenshotSave: (args, sender) =>
+    saveScreenshot(browser, sender, args?.image),
+  charlieScreenshotOcr: recognizeScreenshot,
+  charlieScreenshotOcrCancel: cancelScreenshotOcr,
+  charlieScreenshotOpen: (_args, sender) =>
+    sendTabMsg(
+      "charlieScreenshotOpen",
+      undefined,
+      { frameId: 0 },
+      sender?.tab?.id
+    ),
+  [SCREENSHOT_CAPTURE]: (_args, sender) => captureScreenshot(browser, sender),
   [MSG_GET_FRAME_ID]: (_args, sender) =>
     Number.isInteger(sender?.frameId) ? sender.frameId : undefined,
   [MSG_VALIDATE_DOCUMENT]: (args, sender) =>
@@ -751,14 +769,17 @@ const messageHandlers = {
 /**
  * 注册全局统一的 runtime.onMessage 消息通道监听器。
  */
-browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
+browser.runtime.onMessage.addListener(({ action, args }, sender) => {
+  if (action === "charlieScreenshotOcrEngine") return false;
   const handler = messageHandlers[action];
   if (!handler) {
-    throw new Error(`Message action is unavailable: ${action}`);
+    return Promise.reject(
+      new Error(`Message action is unavailable: ${action}`)
+    );
   }
 
   // 执行对应的处理器并回传结果给发送方 (Content Script / Popup)
-  return handler(args, sender);
+  return Promise.resolve().then(() => handler(args, sender));
 });
 
 /**

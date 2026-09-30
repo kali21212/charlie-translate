@@ -19,3 +19,5 @@ export const isFirefox = client === CLIENT_FIREFOX; // 是否在 Firefox 浏览�
 // Edge 产物直接复用 Chrome 构建，因此编译时同样以 CLIENT_CHROME 标识。
 export const isAutoTranslateClipboardSupported =
   client === CLIENT_CHROME || client === CLIENT_FIREFOX;
+
+export const isScreenshotSupported = client === CLIENT_CHROME;

@@ -324,6 +324,16 @@ function sendRuntimeMessageAsync(message) {
 }
 
 describe("TranslatorManager SPA lifecycle", () => {
+  test("does not answer screenshot controller messages", () => {
+    const manager = createManager();
+    manager.start();
+    const handler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+    const respond = jest.fn();
+    expect(handler({ action: "charlieScreenshotSelect" }, {}, respond)).toBe(
+      false
+    );
+    expect(respond).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.useFakeTimers();
     document.documentElement.innerHTML = "<head></head><body></body>";

@@ -1,3 +1,4 @@
+import { isScreenshotSupported } from "../../libs/client";
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
@@ -40,6 +41,7 @@ import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
 import { normalizeFabAppearance } from "../../config/fab";
 import FloatingButton from "../../components/FloatingButton";
+import CameraAltRoundedIcon from "@mui/icons-material/CameraAltRounded";
 
 const selectionUnavailable = () => false;
 
@@ -276,6 +278,18 @@ export function ContentFabContent({
       icon: SettingsRoundedIcon,
       action: openSettings,
     },
+    {
+      label: "截图与翻译",
+      icon: CameraAltRoundedIcon,
+      action: () => {
+        closeMenu(true);
+        Promise.resolve(sendBgMsg("charlieScreenshotOpen")).catch(
+          () => undefined
+        );
+      },
+      hidden: !isScreenshotSupported || window !== window.top,
+    },
+
     {
       label: i18n("touch_paragraph"),
       icon: TranslateRoundedIcon,

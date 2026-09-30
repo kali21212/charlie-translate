@@ -681,6 +681,8 @@ export default class TranslatorManager {
    * 处理扩展 background 发送的 runtime 消息。
    */
   #handleBrowserMessage(message, sender, sendResponse) {
+    // The screenshot controller owns this channel; do not race its async reply.
+    if (message.action?.startsWith("charlieScreenshot")) return false;
     const shouldRespond =
       !message.responseDocumentToken ||
       message.responseDocumentToken === this.#documentToken;
