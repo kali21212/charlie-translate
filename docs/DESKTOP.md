@@ -22,6 +22,6 @@ Windows x64 便携版。解压整个文件夹，双击 `CharlieTranslate.exe`，
 
 Python 3.12 Windows x64：安装 `services/ocr/requirements.lock` 固定且校验哈希的 wheel 依赖，构建工具 PyInstaller 6.22.3；模型地址和 SHA-256 在 `services/ocr/models.json`，只在准备阶段下载。Node 二进制由 `desktop/node-runtime.json` 校验；MTranServer 4.0.33 和完整依赖由 `desktop/mtran-lock.json` 固定。
 
-准备模型到 `tmp/rapid-models`，翻译资源到 `tmp/desktop-translation`、`tmp/mtran-models`，再运行 `python desktop/build.py`。输出 `build/desktop/CharlieTranslate`，包含许可证、源码、使用说明和 `FILES.json` 校验清单。正式发布需记录对应 Git 提交及压缩包 SHA-256。
+运行 `node desktop/prepare.mjs`，只在构建准备阶段下载并校验模型、Node 和固定 npm 依赖；随后运行 `python desktop/build.py`。输出 `build/desktop/CharlieTranslate`，包含许可证、源码、使用说明和 `FILES.json` 校验清单。正式发布需记录对应 Git 提交及压缩包 SHA-256。
 
 MTranServer 源码 Apache-2.0；Firefox 翻译模型与 Bergamot 引擎涉及 MPL-2.0，保留原许可证和来源。模型与第三方代码没有改写为我们的版权。来源见 `UPSTREAM.md` 与随包 `licenses/`。

@@ -30,7 +30,9 @@ def main():
     for asset in json.loads((ROOT / "services/ocr/models.json").read_text()):
         copy_checked(ROOT / "tmp/rapid-models" / asset["name"], app / "models" / asset["name"], asset["sha256"])
     runtime = json.loads((ROOT / "desktop/node-runtime.json").read_text())
-    copy_checked(Path(shutil.which("node")), app / "translation/node.exe", runtime["sha256"])
+    node=ROOT / "tmp/desktop-node.exe"
+    if not node.is_file(): node=Path(shutil.which("node"))
+    copy_checked(node, app / "translation/node.exe", runtime["sha256"])
     shutil.copytree(ROOT / "tmp/desktop-translation/node_modules", app / "translation/node_modules", dirs_exist_ok=True)
     shutil.copy2(ROOT / "desktop/offline-guard.cjs", app / "translation/offline-guard.cjs")
     records = json.loads((ROOT / "desktop/translation-records.json").read_text())

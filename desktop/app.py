@@ -162,7 +162,8 @@ class App:
     def ready(self, engine):
         self.engine = engine
         note = "浏览器可共用本机 OCR。" if self.api else "8990 端口被占用，桌面识字仍可用。"
-        self.status.set("增强 OCR 就绪。Ctrl+Alt+Q 框选后预览，再点击增强识字。" + note)
+        shortcut="Ctrl+Alt+Q 框选后预览。" if self.hotkey else "快捷键被占用，请点击框选截图。"
+        self.status.set("增强 OCR 就绪。" + shortcut + note)
 
     def submit(self, work, done):
         if self.busy:
@@ -325,6 +326,9 @@ class App:
         self.image.save(stream, format="BMP")
         data = stream.getvalue()[14:]
         kernel, user = ctypes.windll.kernel32, ctypes.windll.user32
+        from ctypes import wintypes
+        kernel.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+        user.OpenClipboard.argtypes = [wintypes.HWND]
         kernel.GlobalAlloc.restype = ctypes.c_void_p
         kernel.GlobalLock.argtypes = [ctypes.c_void_p]
         kernel.GlobalLock.restype = ctypes.c_void_p
@@ -452,7 +456,7 @@ def self_test(app, fixture, output):
                 app.root.update_idletasks()
                 window_image(app.root).save(output/"desktop-proof.png")
                 app.image.save(output/"saved-fixture.png",format="PNG")
-                (output / "result.json").write_text(json.dumps({"ok":True,"translation":text,"engine":"PP-OCRv5 server","api_ready":app.api is not None},ensure_ascii=False,indent=2),encoding="utf-8")
+                (output / "result.json").write_text(json.dumps({"ok":True,"translation":text,"engine":"PP-OCRv5 server","api_ready":app.api is not None,"hotkey_registered":app.hotkey},ensure_ascii=False,indent=2),encoding="utf-8")
                 return app.close()
         except Exception as error:
             return fail(str(error))
