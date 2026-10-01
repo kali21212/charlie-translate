@@ -66,24 +66,3 @@ export async function captureScreenshot(browser, sender) {
     await send(SCREENSHOT_SHOW).catch(() => undefined);
   }
 }
-
-export async function saveScreenshot(browser, sender, image) {
-  if (
-    sender?.id !== browser.runtime.id ||
-    sender.frameId !== 0 ||
-    !Number.isInteger(sender.tab?.id) ||
-    !/^https?:\/\//.test(sender.url || "")
-  )
-    throw new Error("Invalid screenshot sender");
-  if (
-    typeof image !== "string" ||
-    image.length > 24000000 ||
-    !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(image)
-  )
-    throw new Error("Invalid screenshot image");
-  return browser.downloads.download({
-    url: image,
-    filename: "Charlie-screenshot.png",
-    saveAs: false,
-  });
-}

@@ -1,4 +1,4 @@
-import { captureScreenshot, saveScreenshot } from "./screenshotCapture";
+import { captureScreenshot } from "./screenshotCapture";
 
 function fixture() {
   const selection = {
@@ -100,29 +100,6 @@ test("sensitive frame fields fail closed", async () => {
   expect(browser.tabs.captureVisibleTab).not.toHaveBeenCalled();
 });
 
-test("save only downloads a validated PNG from the extension content script", async () => {
-  const { browser, sender } = fixture();
-  browser.downloads = { download: jest.fn().mockResolvedValue(12) };
-  expect(
-    await saveScreenshot(browser, sender, "data:image/png;base64,dGVzdA==")
-  ).toBe(12);
-  expect(browser.downloads.download).toHaveBeenCalledWith({
-    url: "data:image/png;base64,dGVzdA==",
-    filename: "Charlie-screenshot.png",
-    saveAs: false,
-  });
-  await expect(
-    saveScreenshot(browser, sender, "https://example.com/file")
-  ).rejects.toThrow("image");
-  await expect(
-    saveScreenshot(
-      browser,
-      { ...sender, frameId: 1 },
-      "data:image/png;base64,dGVzdA=="
-    )
-  ).rejects.toThrow("sender");
-  expect(browser.downloads.download).toHaveBeenCalledTimes(1);
-});
 test("moving the selected tab to another window prevents capture", async () => {
   const { browser, sender } = fixture();
   browser.tabs.get

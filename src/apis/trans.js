@@ -1664,6 +1664,14 @@ const genMTran = (options) => {
   validateMTranUrl(options.url);
   const request = genCustom(options);
   if (!options.key) delete request.headers.Authorization;
+  const endpoint = new URL(options.url);
+  if (
+    endpoint.hostname === "127.0.0.1" &&
+    endpoint.port === "8992" &&
+    endpoint.pathname === "/kiss"
+  ) {
+    request.headers["X-Charlie-Translate"] = "desktop-v1";
+  }
   return request;
 };
 
@@ -2437,14 +2445,30 @@ export async function* handleTranslate(
     });
 
   const runNonStream = async function* (input, init, userMsg) {
-    const response = await fetchData(input, init, {
-      useCache: false,
-      usePool,
-      fetchInterval,
-      fetchLimit,
-      httpTimeout,
-      signal,
-    });
+    let response;
+    try {
+      response = await fetchData(input, init, {
+        useCache: false,
+        usePool,
+        fetchInterval,
+        fetchLimit,
+        httpTimeout,
+        signal,
+      });
+    } catch (error) {
+      if (
+        apiType === OPT_TRANS_MTRAN &&
+        String(input).startsWith("http://127.0.0.1:8992/") &&
+        /failed to fetch|networkerror|econnrefused|connection refused|err_connection_refused|fetch failed|load failed/i.test(
+          String(error?.message || error)
+        )
+      ) {
+        throw new Error(
+          "Charlie 桌面翻译服务未连接，请先打开 CharlieTranslate.exe"
+        );
+      }
+      throw error;
+    }
     if (!response) {
       throw new Error("translate got empty response");
     }

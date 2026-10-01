@@ -8,6 +8,15 @@
 
 ## Charlie Unreleased
 
+- Added **Charlie Translation Router V2**. New/default local routing tries the browser Translator API first and falls back to Charlie Desktop/MTranServer on 127.0.0.1; it never auto-falls through to a cloud provider.
+- Added one-time migration from the old global/default MTranServer route to CharlieAuto while preserving explicit per-site MTranServer rules, custom URLs/keys and user-enabled cloud providers.
+- Moved browser built-in translation execution out of the Manifest V3 service worker and into extension document/content contexts where Translator/LanguageDetector are available.
+- Kept OpenAI/GPT, Gemini, Claude and other cloud AI providers as explicit opt-in choices; preserved the existing OpenAI model preset and user model selections.
+- Documented the high-quality-local extension slot but did not bundle CTranslate2/OPUS-MT/MADLAD-400 in this release, avoiding multi-GB default model cost.
+- Added router, privacy-boundary and browser Translator API regression tests.
+- Closed the indirect remote language-detection path inside CharlieAuto; cancellation never starts the next fallback. Removed obsolete MV3 background handlers that referenced deleted Translator imports.
+- Preserved explicitly customized/token-protected MTran selections and made settings/rule migration atomic, including rollback coverage and pre-persistence read normalization.
+
 - Added webpage screenshot tools: region selection, PNG saving, bundled local English/Chinese OCR, editable text and explicit translation through enabled providers. Captures verify the active document/window and fail closed on sensitive fields; assets preserve pinned sources/checksums and Apache-2.0 notices.
 
 - Rewrote the repository homepage for Charlie Translate, removing inherited upstream advertisements, donation/community links, demonstration media and store installation links while retaining source attribution and GPL notices.

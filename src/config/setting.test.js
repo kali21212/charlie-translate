@@ -5,7 +5,7 @@ import {
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_TRANBOX_SETTING,
 } from "./setting";
-import { DEFAULT_API_LIST, OPT_TRANS_MTRAN } from "./api";
+import { DEFAULT_API_LIST, OPT_TRANS_CHARLIE_AUTO } from "./api";
 import { GLOBAL_KEY } from "./rules";
 
 describe("translation box defaults", () => {
@@ -28,10 +28,11 @@ describe("translation box defaults", () => {
     expect(DEFAULT_SETTING.checkUpdate).toBe(false);
   });
 
-  test("uses local MTranServer for every default translation entry point", () => {
-    expect(DEFAULT_INPUT_RULE.apiSlug).toBe(OPT_TRANS_MTRAN);
-    expect(DEFAULT_TRANBOX_SETTING.apiSlugs).toEqual([OPT_TRANS_MTRAN]);
-    expect(DEFAULT_SUBTITLE_SETTING.apiSlug).toBe(OPT_TRANS_MTRAN);
+  test("uses Translation Router V2 for every default translation entry point", () => {
+    expect(DEFAULT_INPUT_RULE.apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+    expect(DEFAULT_TRANBOX_SETTING.apiSlugs).toEqual([OPT_TRANS_CHARLIE_AUTO]);
+    expect(DEFAULT_SUBTITLE_SETTING.apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+    expect(DEFAULT_SETTING.translationRouterVersion).toBe(2);
   });
 
   test("does not ignore any language by default", () => {

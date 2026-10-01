@@ -21,7 +21,10 @@ import {
   SETTINGS_VERSION_V2,
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
+  DEFAULT_API_LIST,
   normalizeApiThinkingSettings,
+  OPT_TRANS_CHARLIE_AUTO,
+  OPT_TRANS_MTRAN,
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_WORDS_KEY,
@@ -515,6 +518,130 @@ export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
 const writeSettingBackupBeforeV2 = (setting) =>
   setObj(STOKEY_SETTING_BACKUP_V1_BEFORE_V2, setting);
+
+const CHARLIE_TRANSLATION_ROUTER_VERSION = 2;
+const CHARLIE_DESKTOP_MTRAN_URL = "http://127.0.0.1:8992/kiss";
+
+const getDefaultCharlieAutoApi = () =>
+  DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_CHARLIE_AUTO);
+
+const usesDefaultMTranEndpoint = (setting) => {
+  const provider = (
+    Array.isArray(setting?.transApis) ? setting.transApis : []
+  ).find((api) => api?.apiSlug === OPT_TRANS_MTRAN);
+  if (!provider) return true;
+  const url = String(provider.url || "").replace(/\/$/, "");
+  return (
+    provider.apiType === OPT_TRANS_MTRAN &&
+    !provider.key &&
+    (url === CHARLIE_DESKTOP_MTRAN_URL || LEGACY_LOCAL_MTRAN_URLS.has(url))
+  );
+};
+
+const ensureCharlieAutoProvider = (setting) => {
+  if (!setting || typeof setting !== "object") return setting;
+  const transApis = Array.isArray(setting.transApis) ? setting.transApis : [];
+  if (
+    transApis.some(
+      (api) =>
+        api?.apiType === OPT_TRANS_CHARLIE_AUTO ||
+        api?.apiSlug === OPT_TRANS_CHARLIE_AUTO
+    )
+  ) {
+    return setting;
+  }
+  const defaultAuto = getDefaultCharlieAutoApi();
+  if (!defaultAuto) return setting;
+  return {
+    ...setting,
+    transApis: [{ ...defaultAuto }, ...transApis],
+  };
+};
+
+const migrateCharlieTranslationRouterV2 = (setting) => {
+  if (!setting || typeof setting !== "object") return setting;
+  let next = ensureCharlieAutoProvider(setting);
+  if (
+    Number(next.translationRouterVersion || 0) >=
+    CHARLIE_TRANSLATION_ROUTER_VERSION
+  ) {
+    return next;
+  }
+
+  const migrateDefault = usesDefaultMTranEndpoint(setting);
+  if (migrateDefault && next.inputRule?.apiSlug === OPT_TRANS_MTRAN) {
+    next = {
+      ...next,
+      inputRule: { ...next.inputRule, apiSlug: OPT_TRANS_CHARLIE_AUTO },
+    };
+  }
+
+  if (
+    migrateDefault &&
+    Array.isArray(next.tranboxSetting?.apiSlugs) &&
+    next.tranboxSetting.apiSlugs.length === 1 &&
+    next.tranboxSetting.apiSlugs[0] === OPT_TRANS_MTRAN
+  ) {
+    next = {
+      ...next,
+      tranboxSetting: {
+        ...next.tranboxSetting,
+        apiSlugs: [OPT_TRANS_CHARLIE_AUTO],
+      },
+    };
+  }
+
+  if (migrateDefault && next.subtitleSetting?.apiSlug === OPT_TRANS_MTRAN) {
+    next = {
+      ...next,
+      subtitleSetting: {
+        ...next.subtitleSetting,
+        apiSlug: OPT_TRANS_CHARLIE_AUTO,
+      },
+    };
+  }
+
+  return {
+    ...next,
+    translationRouterVersion: CHARLIE_TRANSLATION_ROUTER_VERSION,
+  };
+};
+
+const migrateCharlieRouterRulesV2 = (rules) => {
+  if (!Array.isArray(rules)) return rules;
+  let changed = false;
+  const next = rules.map((rule) => {
+    if (rule?.pattern === "*" && rule?.apiSlug === OPT_TRANS_MTRAN) {
+      changed = true;
+      return { ...rule, apiSlug: OPT_TRANS_CHARLIE_AUTO };
+    }
+    return rule;
+  });
+  return changed ? next : rules;
+};
+const LEGACY_LOCAL_MTRAN_URLS = new Set([
+  "http://localhost:8989/kiss",
+  "http://127.0.0.1:8989/kiss",
+]);
+const migrateDesktopMTranUrl = (setting) => {
+  if (!Array.isArray(setting?.transApis)) return setting;
+  let changed = false;
+  const transApis = setting.transApis.map((api) => {
+    const isMTran =
+      api?.apiType === OPT_TRANS_MTRAN || api?.apiSlug === OPT_TRANS_MTRAN;
+    if (
+      isMTran &&
+      !api?.key &&
+      LEGACY_LOCAL_MTRAN_URLS.has(String(api?.url || "").replace(/\/$/, ""))
+    ) {
+      changed = true;
+      return { ...api, url: CHARLIE_DESKTOP_MTRAN_URL };
+    }
+    return api;
+  });
+  return changed ? { ...setting, transApis } : setting;
+};
+
 const mergeSettingWithDefault = (setting) => {
   const mergedSetting = {
     ...DEFAULT_SETTING,
@@ -524,12 +651,16 @@ const mergeSettingWithDefault = (setting) => {
       ...(setting?.tranboxSetting || {}),
     },
     version: setting?.version ?? DEFAULT_SETTING.version,
+    translationRouterVersion: setting?.translationRouterVersion ?? 0,
   };
 
-  // 设置读取时只在内存中归一化一次，避免每次请求重复解析模型能力。
+  // Read-time normalization keeps V2 routing available even before an update
+  // event persists the migration. Cloud services are never auto-enabled here.
+  const routerReady = migrateCharlieTranslationRouterV2(mergedSetting);
+  const desktopReady = migrateDesktopMTranUrl(routerReady);
   return {
-    ...mergedSetting,
-    transApis: normalizeApiThinkingSettings(mergedSetting.transApis),
+    ...desktopReady,
+    transApis: normalizeApiThinkingSettings(desktopReady.transApis),
   };
 };
 export const migrateStoredSettingToV2 = async (
@@ -544,33 +675,69 @@ export const migrateStoredSettingToV2 = async (
   return migrateSettingPromptsToV2(setting);
 };
 
-/** Return false if migration cannot persist settings; reads still reject. */
+/** Migrate settings and rules under one lock; failures leave the previous data. */
 export const runDataMigration = async () => {
-  const rawSetting = await getSetting();
-  if (!rawSetting) return true;
-
-  const needsSchemaMigration =
-    getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
-  const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
-  if (!needsSchemaMigration && !needsThemeMigration) return true;
-
   try {
-    let nextSetting = rawSetting;
-    if (needsSchemaMigration) {
-      const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
-      nextSetting = migrateSettingToV3(v2Setting);
-    }
-    if (needsThemeMigration) {
-      nextSetting = {
-        ...nextSetting,
-        darkMode: rawSetting.darkMode ? "dark" : "light",
-      };
-    }
-    await setObj(STOKEY_SETTING, nextSetting);
-    kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
+    await withTransaction(async (transaction) => {
+      const rawSetting = await transaction.getObj(STOKEY_SETTING);
+      if (!rawSetting) return true;
+
+      const needsSchemaMigration =
+        getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
+      const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
+      const routerReadySetting = migrateCharlieTranslationRouterV2(rawSetting);
+      const needsRouterMigration = routerReadySetting !== rawSetting;
+      const desktopReadySetting = migrateDesktopMTranUrl(routerReadySetting);
+      const needsDesktopBridgeMigration =
+        desktopReadySetting !== routerReadySetting;
+
+      if (
+        !needsSchemaMigration &&
+        !needsThemeMigration &&
+        !needsDesktopBridgeMigration &&
+        !needsRouterMigration
+      )
+        return true;
+
+      let nextSetting = desktopReadySetting;
+      if (needsSchemaMigration) {
+        let v2Setting = nextSetting;
+        if (getSettingVersion(nextSetting) < SETTINGS_VERSION_V2) {
+          await transaction.setObj(
+            STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+            rawSetting
+          );
+          v2Setting = migrateSettingPromptsToV2(nextSetting);
+        }
+        nextSetting = migrateSettingToV3(v2Setting);
+      }
+      if (needsThemeMigration) {
+        nextSetting = {
+          ...nextSetting,
+          darkMode: rawSetting.darkMode ? "dark" : "light",
+        };
+      }
+      nextSetting = migrateDesktopMTranUrl(
+        migrateCharlieTranslationRouterV2(nextSetting)
+      );
+
+      const rawRules = await transaction.getObj(STOKEY_RULES);
+      const nextRules =
+        needsRouterMigration && usesDefaultMTranEndpoint(rawSetting)
+          ? migrateCharlieRouterRulesV2(rawRules)
+          : rawRules;
+
+      await transaction.setObj(STOKEY_SETTING, nextSetting);
+      if (nextRules !== rawRules && nextRules !== undefined) {
+        await transaction.setObj(STOKEY_RULES, nextRules);
+      }
+    });
     return true;
   } catch (err) {
-    kissLog(`Data migration to V${CURRENT_SETTINGS_VERSION} failed:`, err);
+    kissLog(
+      `Data migration to settings V${CURRENT_SETTINGS_VERSION} / Translation Router V${CHARLIE_TRANSLATION_ROUTER_VERSION} failed:`,
+      err
+    );
     return false;
   }
 };

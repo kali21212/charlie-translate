@@ -25,6 +25,9 @@ def create_engine(model_dir):
         "Global.model_root_dir": str(model_dir),
         "Global.use_cls": False,
         "Global.log_level": "error",
+        # Preserve native screenshot pixels instead of enlarging the short side to 736.
+        "Det.limit_type": "max",
+        "EngineConfig.onnxruntime.enable_cpu_mem_arena": True,
         "Det.ocr_version": OCRVersion.PPOCRV5,
         "Det.model_type": ModelType.SERVER,
         "Det.model_path": str(model_dir / "ch_PP-OCRv5_det_server.onnx"),
@@ -32,7 +35,7 @@ def create_engine(model_dir):
         "Rec.model_type": ModelType.SERVER,
         "Rec.model_path": str(model_dir / "ch_PP-OCRv5_rec_server.onnx"),
         "Cls.model_path": str(model_dir / "ch_ppocr_mobile_v2.0_cls_mobile.onnx"),
-        "EngineConfig.onnxruntime.intra_op_num_threads": min(4, os.cpu_count() or 1),
+        "EngineConfig.onnxruntime.intra_op_num_threads": min(8, os.cpu_count() or 1),
         "EngineConfig.onnxruntime.inter_op_num_threads": 1,
     })
 

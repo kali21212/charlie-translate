@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -17,6 +18,7 @@ class LocalTranslation:
         self.process = None
         self.token = secrets.token_urlsafe(32)
         self.state = None
+        self.lock = threading.RLock()
         # Ignore system proxy environment and forbid redirects, even to loopback.
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, *_args):
@@ -24,8 +26,12 @@ class LocalTranslation:
         self.client = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
     def start(self):
-        if self.process and self.process.poll() is None:
-            return
+        with self.lock:
+            if self.process and self.process.poll() is None:
+                return
+            return self._start_locked()
+
+    def _start_locked(self):
         node = self.root / "translation" / "node.exe"
         entry = self.root / "translation" / "node_modules" / "mtranserver" / "dist" / "main.js"
         if not node.is_file() or not entry.is_file():
@@ -62,16 +68,37 @@ class LocalTranslation:
                 raise ValueError("本机翻译响应过长")
             return json.loads(raw)
 
-    def translate(self, text):
-        if not text.strip() or len(text) > 12000:
+    def translate_request(self, text, source="en", target="zh-Hans"):
+        if not isinstance(text, str) or not text.strip() or len(text) > 12000:
             raise ValueError("请填写原文，且不超过 12000 字")
         self.start()
-        result = self.request("/kiss", {"text": text, "from": "en", "to": "zh-Hans"})
-        # The official single-text kiss API returns {text: string, src: string}.
+        result = self.request("/kiss", {"text": text, "from": source, "to": target})
         output = result.get("text") if isinstance(result, dict) else None
         if not isinstance(output, str):
             raise ValueError("本机翻译返回无效结果")
-        return output
+        return {"text": output, "src": result.get("src") or result.get("from") or source}
+
+    def translate_many(self, texts, source="en", target="zh-Hans"):
+        if not isinstance(texts, list) or not texts:
+            raise ValueError("请提供待翻译文本")
+        if len(texts) > 50 or any(not isinstance(text, str) for text in texts):
+            raise ValueError("批量翻译内容无效")
+        if sum(len(text) for text in texts) > 20000:
+            raise ValueError("批量翻译内容过长")
+        self.start()
+        result = self.request("/kiss", {"texts": texts, "from": source, "to": target})
+        translations = result.get("translations") if isinstance(result, dict) else None
+        if not isinstance(translations, list) or len(translations) != len(texts):
+            raise ValueError("本机批量翻译返回无效结果")
+        normalized = []
+        for item in translations:
+            if not isinstance(item, dict) or not isinstance(item.get("text"), str):
+                raise ValueError("本机批量翻译返回无效结果")
+            normalized.append({"text": item["text"], "src": item.get("src") or item.get("from") or source})
+        return normalized
+
+    def translate(self, text):
+        return self.translate_request(text)["text"]
 
     def close(self):
         if self.process and self.process.poll() is None:

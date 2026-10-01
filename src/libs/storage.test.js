@@ -1,11 +1,12 @@
 import {
   STOKEY_SETTING,
+  STOKEY_RULES,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_API_LIST,
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_CHARLIE_AUTO,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_MTRAN,
@@ -35,6 +36,44 @@ function loadGmStorageModule() {
 }
 
 describe("settings storage migration", () => {
+  test("migrates legacy no-key loopback endpoints while preserving explicit providers", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        transApis: [
+          {
+            apiType: OPT_TRANS_MTRAN,
+            apiSlug: "legacy",
+            url: "http://localhost:8989/kiss",
+          },
+          {
+            apiType: OPT_TRANS_MTRAN,
+            apiSlug: "keyed",
+            url: "http://127.0.0.1:8989/kiss",
+            key: "chosen-key",
+          },
+          {
+            apiType: OPT_TRANS_MTRAN,
+            apiSlug: "custom",
+            url: "http://127.0.0.1:9999/kiss",
+          },
+        ],
+      })
+    );
+    const setting = await getSettingWithDefault();
+    expect(
+      setting.transApis
+        .filter((api) => api.apiType === OPT_TRANS_MTRAN)
+        .map((api) => api.url)
+    ).toEqual([
+      "http://127.0.0.1:8992/kiss",
+      "http://127.0.0.1:8989/kiss",
+      "http://127.0.0.1:9999/kiss",
+    ]);
+    expect(
+      setting.transApis.some((api) => api.apiType === OPT_TRANS_CHARLIE_AUTO)
+    ).toBe(true);
+  });
   beforeEach(() => {
     window.localStorage.clear();
     delete window.KISS_GM;
@@ -49,6 +88,126 @@ describe("settings storage migration", () => {
     delete globalThis.GM_setValue;
     delete globalThis.GM_getValue;
     delete globalThis.GM_deleteValue;
+  });
+
+  test("migrates only the old global MTran default to Translation Router V2", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        inputRule: { apiSlug: OPT_TRANS_MTRAN },
+        tranboxSetting: { apiSlugs: [OPT_TRANS_MTRAN] },
+        subtitleSetting: { apiSlug: OPT_TRANS_MTRAN },
+        transApis: [
+          DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_MTRAN),
+        ],
+      })
+    );
+    window.localStorage.setItem(
+      STOKEY_RULES,
+      JSON.stringify([
+        { pattern: "*", apiSlug: OPT_TRANS_MTRAN },
+        { pattern: "example.com", apiSlug: OPT_TRANS_MTRAN },
+      ])
+    );
+
+    await expect(runDataMigration()).resolves.toBe(true);
+
+    const setting = readStoredJson(STOKEY_SETTING);
+    expect(setting.translationRouterVersion).toBe(2);
+    expect(setting.inputRule.apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+    expect(setting.tranboxSetting.apiSlugs).toEqual([OPT_TRANS_CHARLIE_AUTO]);
+    expect(setting.subtitleSetting.apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+    expect(
+      setting.transApis.some((api) => api.apiType === OPT_TRANS_CHARLIE_AUTO)
+    ).toBe(true);
+
+    const rules = readStoredJson(STOKEY_RULES);
+    expect(rules[0].apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+    expect(rules[1].apiSlug).toBe(OPT_TRANS_MTRAN);
+  });
+
+  test("normalizes legacy routing before the install migration is persisted", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        inputRule: { apiSlug: OPT_TRANS_MTRAN },
+        tranboxSetting: { apiSlugs: [OPT_TRANS_MTRAN] },
+        subtitleSetting: { apiSlug: OPT_TRANS_MTRAN },
+      })
+    );
+    const setting = await getSettingWithDefault();
+    expect(setting.inputRule.apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+    expect(setting.tranboxSetting.apiSlugs).toEqual([OPT_TRANS_CHARLIE_AUTO]);
+    expect(setting.subtitleSetting.apiSlug).toBe(OPT_TRANS_CHARLIE_AUTO);
+  });
+
+  test.each([
+    { url: "http://127.0.0.1:9999/kiss", key: "" },
+    { url: "http://127.0.0.1:8992/kiss", key: "fixture-key" },
+  ])(
+    "preserves explicit MTran endpoint/token selections: %p",
+    async (config) => {
+      const provider = {
+        ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_MTRAN),
+        ...config,
+      };
+      const setting = {
+        version: SETTINGS_VERSION_V3,
+        inputRule: { apiSlug: OPT_TRANS_MTRAN },
+        tranboxSetting: { apiSlugs: [OPT_TRANS_MTRAN] },
+        subtitleSetting: { apiSlug: OPT_TRANS_MTRAN },
+        transApis: [
+          provider,
+          { apiType: "OpenAI", apiSlug: "chosen-cloud", isDisabled: false },
+        ],
+      };
+      window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(setting));
+      const rules = [{ pattern: "*", apiSlug: OPT_TRANS_MTRAN }];
+      window.localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      await expect(runDataMigration()).resolves.toBe(true);
+      const stored = readStoredJson(STOKEY_SETTING);
+      expect(stored.inputRule).toEqual(setting.inputRule);
+      expect(stored.tranboxSetting).toEqual(setting.tranboxSetting);
+      expect(stored.subtitleSetting).toEqual(setting.subtitleSetting);
+      expect(stored.transApis).toEqual(
+        expect.arrayContaining(setting.transApis)
+      );
+      expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
+    }
+  );
+
+  test("rolls back settings if the companion rule migration cannot commit", async () => {
+    const oldSetting = {
+      version: SETTINGS_VERSION_V3,
+      inputRule: { apiSlug: OPT_TRANS_MTRAN },
+    };
+    const oldRules = [{ pattern: "*", apiSlug: OPT_TRANS_MTRAN }];
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
+    window.localStorage.setItem(STOKEY_RULES, JSON.stringify(oldRules));
+    const nativeSetItem = window.Storage.prototype.setItem;
+    let failed = false;
+    const setItem = jest
+      .spyOn(window.Storage.prototype, "setItem")
+      .mockImplementation(function (key, value) {
+        if (key === STOKEY_RULES && !failed) {
+          failed = true;
+          throw new Error("fixture rule write failure");
+        }
+        return nativeSetItem.call(this, key, value);
+      });
+    try {
+      await expect(runDataMigration()).resolves.toBe(false);
+      expect(readStoredJson(STOKEY_SETTING)).toEqual(oldSetting);
+      expect(readStoredJson(STOKEY_RULES)).toEqual(oldRules);
+    } finally {
+      setItem.mockRestore();
+    }
+    await expect(runDataMigration()).resolves.toBe(true);
+    expect(readStoredJson(STOKEY_RULES)[0].apiSlug).toBe(
+      OPT_TRANS_CHARLIE_AUTO
+    );
   });
 
   test("runDataMigration backs up raw v1 settings and stores current settings", async () => {
@@ -71,10 +230,12 @@ describe("settings storage migration", () => {
 
     expect(backup).toEqual(oldSetting);
     expect(stored.version).toBe(SETTINGS_VERSION_V3);
-    expect(stored.transApis[0].batchPromptSlug).toMatch(
-      /^prompt_migrated_batch_/
+    expect(stored.translationRouterVersion).toBe(2);
+    const migratedOpenAI = stored.transApis.find(
+      (api) => api.apiSlug === "openai"
     );
-    expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
+    expect(migratedOpenAI.batchPromptSlug).toMatch(/^prompt_migrated_batch_/);
+    expect(migratedOpenAI).not.toHaveProperty("systemPrompt");
   });
 
   test.each([
@@ -92,10 +253,15 @@ describe("settings storage migration", () => {
 
       await runDataMigration();
 
-      expect(readStoredJson(STOKEY_SETTING)).toEqual({
+      const stored = readStoredJson(STOKEY_SETTING);
+      expect(stored).toMatchObject({
         ...oldSetting,
         darkMode: expected,
+        translationRouterVersion: 2,
       });
+      expect(
+        stored.transApis.some((api) => api.apiType === OPT_TRANS_CHARLIE_AUTO)
+      ).toBe(true);
       expect(readStoredJson(STOKEY_SETTING_BACKUP_V1_BEFORE_V2)).toBe(null);
     }
   );
@@ -150,10 +316,12 @@ describe("settings storage migration", () => {
     const setting = await getSettingWithDefault();
 
     expect(setting.version).toBe(SETTINGS_VERSION_V3);
-    expect(setting.transApis[0].batchPromptSlug).toMatch(
-      /^prompt_migrated_batch_/
+    expect(setting.translationRouterVersion).toBe(2);
+    const migratedOpenAI = setting.transApis.find(
+      (api) => api.apiSlug === "openai"
     );
-    expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
+    expect(migratedOpenAI.batchPromptSlug).toMatch(/^prompt_migrated_batch_/);
+    expect(migratedOpenAI).not.toHaveProperty("systemPrompt");
   });
 
   test.each([
@@ -276,7 +444,8 @@ describe("settings storage migration", () => {
 
     const setting = await getSettingWithDefault();
 
-    expect(setting.transApis[0].thinkingEffort).toBeNull();
+    const openai = setting.transApis.find((api) => api.apiSlug === "openai");
+    expect(openai.thinkingEffort).toBeNull();
     expect(readStoredJson(STOKEY_SETTING)).toEqual(storedSetting);
   });
 
@@ -300,7 +469,7 @@ describe("settings storage migration", () => {
       setting.transApis
         .filter((api) => !api.isDisabled)
         .map((api) => api.apiType)
-    ).toEqual([OPT_TRANS_BUILTINAI, OPT_TRANS_MTRAN]);
+    ).toEqual([OPT_TRANS_CHARLIE_AUTO]);
   });
 
   test.each([1, SETTINGS_VERSION_V2, SETTINGS_VERSION_V3])(
@@ -333,9 +502,14 @@ describe("settings storage migration", () => {
 
       const setting = await getSettingWithDefault();
 
-      expect(setting.transApis).toHaveLength(savedApis.length);
-      savedApis.forEach((savedApi, index) => {
-        const loadedApi = setting.transApis[index];
+      expect(setting.transApis).toHaveLength(savedApis.length + 1);
+      expect(
+        setting.transApis.some((api) => api.apiType === OPT_TRANS_CHARLIE_AUTO)
+      ).toBe(true);
+      savedApis.forEach((savedApi) => {
+        const loadedApi = setting.transApis.find(
+          (api) => api.apiSlug === savedApi.apiSlug
+        );
         [
           "apiSlug",
           "apiName",
@@ -375,7 +549,8 @@ describe("settings storage migration", () => {
         JSON.stringify(storedSetting)
       );
       const setting = await getSettingWithDefault();
-      expect(setting.transApis[0].thinkingEffort).toBe("low");
+      const openai = setting.transApis.find((api) => api.apiSlug === "openai");
+      expect(openai.thinkingEffort).toBe("low");
       expect(readStoredJson(STOKEY_SETTING)).toEqual(storedSetting);
     }
   );

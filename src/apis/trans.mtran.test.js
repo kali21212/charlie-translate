@@ -1,5 +1,6 @@
-import { genTransReq, parseTransRes } from "./trans";
+import { genTransReq, handleTranslate, parseTransRes } from "./trans";
 import { DEFAULT_API_LIST, OPT_TRANS_MTRAN } from "../config";
+import { fetchData } from "../libs/fetch";
 
 jest.mock("query-string", () => ({
   stringify: (obj) => new URLSearchParams(obj).toString(),
@@ -25,18 +26,18 @@ jest.mock("../libs/docInfo", () => ({
 describe("Charlie MTranServer integration", () => {
   const api = DEFAULT_API_LIST.find((item) => item.apiType === OPT_TRANS_MTRAN);
 
-  test("ships an enabled local-first /kiss preset", () => {
+  test("ships the Desktop /kiss preset as an explicit local engine", () => {
     expect(api).toMatchObject({
       apiSlug: OPT_TRANS_MTRAN,
       apiName: OPT_TRANS_MTRAN,
-      url: "http://localhost:8989/kiss",
+      url: "http://127.0.0.1:8992/kiss",
       useBatchFetch: true,
-      isDisabled: false,
+      isDisabled: true,
     });
   });
 
   test.each(["http://127.0.0.1:8989/kiss", "http://[::1]:8989/kiss"])(
-    "supports loopback endpoint %s without sending an empty bearer token",
+    "supports custom loopback endpoint %s without sending an empty bearer token",
     async (url) => {
       const [, init] = await genTransReq({
         ...api,
@@ -66,7 +67,7 @@ describe("Charlie MTranServer integration", () => {
     ).rejects.toThrow("loopback URL");
   });
 
-  test("supports single-text requests and responses", async () => {
+  test("desktop bridge adds its local-only header and supports single-text responses", async () => {
     const [, init] = await genTransReq({
       ...api,
       useBatchFetch: false,
@@ -74,6 +75,8 @@ describe("Charlie MTranServer integration", () => {
       fromLang: "en",
       toLang: "zh-CN",
     });
+    expect(init.headers["X-Charlie-Translate"]).toBe("desktop-v1");
+    expect(init.headers.Authorization).toBeUndefined();
     expect(JSON.parse(init.body)).toEqual({
       text: "Hello",
       from: "en",
@@ -90,7 +93,6 @@ describe("Charlie MTranServer integration", () => {
   test("generates the MTranServer compatible batch request", async () => {
     const [url, init] = await genTransReq({
       ...api,
-      key: "local-token",
       texts: ["Hello", "World"],
       from: "auto",
       to: "zh-CN",
@@ -98,15 +100,33 @@ describe("Charlie MTranServer integration", () => {
       toLang: "zh-CN",
     });
 
-    expect(url).toBe("http://localhost:8989/kiss");
+    expect(url).toBe("http://127.0.0.1:8992/kiss");
     expect(init.redirect).toBe("error");
     expect(init.credentials).toBe("omit");
-    expect(init.headers.Authorization).toBe("Bearer local-token");
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(init.headers["X-Charlie-Translate"]).toBe("desktop-v1");
     expect(JSON.parse(init.body)).toEqual({
       texts: ["Hello", "World"],
       from: "auto",
       to: "zh-CN",
     });
+  });
+
+  test("explains that Desktop EXE must be open when bridge is unavailable", async () => {
+    fetchData.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const run = async () => {
+      for await (const _chunk of handleTranslate(["Hello"], {
+        from: "auto",
+        to: "zh-CN",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        apiSetting: api,
+        usePool: false,
+      })) {
+        // no-op
+      }
+    };
+    await expect(run()).rejects.toThrow("请先打开 CharlieTranslate.exe");
   });
 
   test("parses MTranServer compatible batch responses", async () => {

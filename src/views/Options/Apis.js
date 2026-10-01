@@ -58,6 +58,7 @@ import {
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_APIMART,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_CHARLIE_AUTO,
   OPT_TRANS_QWENMT,
   OPT_TRANS_YANDEX,
   OPT_TRANS_OPENROUTER,
@@ -165,7 +166,7 @@ function TestButton({ api }) {
         toLang = "zh-CN";
       }
 
-      const { trText } = await apiTranslate({
+      const { trText, routerEngine } = await apiTranslate({
         text,
         fromLang,
         toLang,
@@ -179,6 +180,7 @@ function TestButton({ api }) {
       alert.success(
         <>
           <div>{i18n("test_success")}</div>
+          {routerEngine && <div>Local engine: {routerEngine}</div>}
           <div>{text}</div>
           <div>{trText}</div>
         </>
@@ -838,6 +840,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
           />
         </Stack>
       </Stack>
+      {apiType === OPT_TRANS_CHARLIE_AUTO && (
+        <Alert severity="info">
+          仅本地自动路由：优先使用浏览器 Translator API；不可用时回退到
+          Charlie Desktop / MTranServer。不会自动把文本发送到云端。
+        </Alert>
+      )}
+      {API_SPE_TYPES.cloudAi.has(apiType) && (
+        <Alert severity="warning">
+          云端 AI：只有在你主动启用并选择此接口时才会发送待翻译文本。Charlie
+          Auto 不会自动回退到云端。
+        </Alert>
+      )}
       <Box>
         <TextField
           size="small"

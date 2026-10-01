@@ -19,6 +19,7 @@ const loadChromeDetect = (detectResults) => {
 describe("chromeDetect", () => {
   afterEach(() => {
     delete global.LanguageDetector;
+    delete global.Translator;
     jest.resetModules();
     jest.clearAllMocks();
   });
@@ -75,5 +76,52 @@ describe("chromeDetect", () => {
     await expect(chromeDetect({ text: "first" })).resolves.toEqual(["en", ""]);
     await expect(chromeDetect({ text: "second" })).resolves.toEqual(["de", ""]);
     await expect(chromeDetect({ text: "third" })).resolves.toEqual(["de", ""]);
+  });
+});
+
+describe("chromeTranslate", () => {
+  afterEach(() => {
+    delete global.Translator;
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  test("uses the browser local Translator API in the current context", async () => {
+    const translate = jest.fn().mockResolvedValue("你好，世界");
+    global.Translator = {
+      availability: jest.fn().mockResolvedValue("available"),
+      create: jest.fn().mockResolvedValue({ translate }),
+    };
+    const { chromeTranslate } = require("./builtinAI");
+
+    await expect(
+      chromeTranslate({ text: "Hello, world", from: "en", to: "zh-Hans" })
+    ).resolves.toEqual(["你好，世界", "en", ""]);
+
+    expect(global.Translator.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceLanguage: "en",
+        targetLanguage: "zh-Hans",
+      })
+    );
+    expect(translate).toHaveBeenCalledWith("Hello, world");
+  });
+
+  test("returns a local availability error without invoking a cloud service", async () => {
+    global.Translator = {
+      availability: jest.fn().mockResolvedValue("unavailable"),
+      create: jest.fn(),
+    };
+    const { chromeTranslate } = require("./builtinAI");
+
+    const result = await chromeTranslate({
+      text: "Hello",
+      from: "en",
+      to: "zh-Hans",
+    });
+
+    expect(result[0]).toBe("");
+    expect(result[2]).toContain("unavailable");
+    expect(global.Translator.create).not.toHaveBeenCalled();
   });
 });

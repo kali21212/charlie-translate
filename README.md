@@ -1,19 +1,19 @@
 # Charlie Translate｜查理翻译
 
-以本机翻译和隐私保护为重点的网页双语、划词翻译扩展。新安装默认使用本地 MTranServer，云服务需要主动启用，已有设置会保留。
+以本机翻译和隐私保护为重点的网页双语、划词翻译扩展。新安装默认使用 **Charlie Translation Router V2**：优先浏览器本地 Translator API，不可用时回退 Charlie Desktop / MTranServer；云服务只在用户主动选择时使用。架构和迁移边界见 [Translation Router V2](docs/TRANSLATION_ROUTER_V2.md)。
 
 ## 功能
 
 - 网页双语对照、划词翻译、鼠标悬停翻译和输入框翻译。
 - YouTube 字幕翻译、站点规则和术语词典。
-- 网页框选截图、保存 PNG、本地中英文 OCR 和截图文字翻译，见[使用说明](docs/SCREENSHOT.md)。
-- 本地 MTranServer 接口，以及可选的云翻译和 AI 接口。
+- 浏览器「截图翻译」：框选网页区域后自动本地 OCR 并翻译；截图只作为内存临时输入，不保存、不做通用标注，见[使用说明](docs/SCREENSHOT.md)。
+- Charlie Translation Router V2、本地 MTranServer，以及用户主动选择的 OpenAI/GPT、Gemini、Claude 等云 AI 接口。
 - 敏感页面的输入翻译与自动剪贴板读取保护。
 - 保留上游同步路径，使用测试、依赖审计和 CI 验证修改。
 
 ## 桌面版：全局截图与增强 OCR
 
-Windows x64 便携版支持桌面及其他软件框选、增强 OCR、主动保存/复制、英文到简体中文本机翻译。完整解压后双击 `CharlieTranslate.exe`，无需安装 Python、Node 或填写 Key。截图不上传，不自动保存；浏览器可共用同一套本机 OCR。安装与使用详见[桌面版说明](docs/DESKTOP.md)。
+Windows x64 便携版支持全局框选、可移动悬浮截图按钮、截图标注、不可逆隐私 Redact、自动复制、增强 OCR 和英文到简体中文本机翻译。完整解压后双击 `CharlieTranslate.exe`，无需安装 Python、Node、MTranServer 或填写 Key。浏览器插件可直接共用 EXE 内置 OCR 与翻译服务。安装与使用详见[桌面版说明](docs/DESKTOP.md)。
 
 ## 安装和本机翻译
 
@@ -22,13 +22,12 @@ Charlie 当前以源码和本地 Chrome 构建交付。
 1. 安装 Node.js 22 和 Corepack，运行 `corepack pnpm@10.15.1 install --frozen-lockfile`。
 2. 运行 `corepack pnpm@10.15.1 build:chrome`。
 3. 在 `chrome://extensions` 打开开发者模式，选择“加载已解压的扩展程序”，加载 `build/chrome`。
-4. 按 [MTranServer 官方文档](https://github.com/xxnuo/MTranServer)安装独立服务，绑定 `127.0.0.1`，默认端口 `8989`。扩展不内置或自动安装该服务及模型。
-5. 在翻译接口设置中选择 **MTranServer**，URL 为 `http://localhost:8989/kiss`。如服务配置了 `MT_API_TOKEN`，在 Key 中填写相同值。也支持 `127.0.0.1` 和 IPv6 回环地址；远程服务器需要显式选择 Custom。
-6. 打开普通网页，使用 `Alt+Q` 网页翻译或选中文字后翻译。服务不可用时显示错误，不自动切换到云服务。
+4. 默认翻译接口选择 **CharlieAuto**。浏览器运行时如果提供本地 `Translator` API，Charlie 直接使用浏览器管理的本地语言模型；某语言对不可用时才连接同机 `http://127.0.0.1:8992` 的 Charlie Desktop。
+5. 因此支持 Translator API 的 Chrome/Chromium 环境可以不依赖 EXE 完成本地翻译；Thorium 等 Chromium fork 只做真实 capability detection，不按浏览器名称猜测。需要 Desktop fallback、增强 OCR 或桌面截图时打开 `CharlieTranslate.exe`。
+6. 两级本地引擎都不可用时会明确报错，**不会自动把文本发送到 OpenAI/Gemini/Claude 等云端**。云 AI 需在“翻译接口”里主动启用并选择。
+7. 需要自建 MTranServer 或其他接口时可显式配置；已有自定义 URL/Key 和具体网站规则不会被强制覆盖。
 
-首次使用通常需要下载模型；预加载后，按服务文档启用 `MT_OFFLINE=true` 可离线工作。服务安装、模型质量和浏览器内效果需在目标浏览器另行验收；CI 验证客户端协议、行为和构建。
-
-新安装默认关闭云翻译接口、在线词典/联想、远程规则注入、更新检查及自动剪贴板翻译。Chrome 内置翻译模型的可用性取决于浏览器，可手动选择。已有云服务、同步及其他配置不会被强制覆盖。
+新安装默认只启用 CharlieAuto；在线词典/联想、远程规则注入、更新检查及自动剪贴板翻译仍保持 opt-in。OpenAI 等云端接口默认关闭，保留已有模型配置，用户可主动选择账户支持的模型。
 
 ## 隐私边界和验证
 
