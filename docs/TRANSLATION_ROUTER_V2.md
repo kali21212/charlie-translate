@@ -144,4 +144,17 @@ Translation Router V2 迁移：
 
 Google Chrome 154 的命令行 `--load-extension` 在本机未可靠激活 Charlie，因此不把该快捷路径当作有效验收依据。随后已改用真实 `chrome://extensions` 开发者模式 UI 手工加载 `build/chrome`，并在浏览器重启后完成 Service Worker、Options、网页翻译、浏览器本地模型、Desktop fallback 及双本地失败零云回退的完整实机链路验证。
 
-当前结论：**V2.3.0 REAL_MACHINE_PASS（Chrome 154 + Thorium + Windows Desktop）/ DEPLOYED_TO_D_F / MAIN_MERGED / RELEASE_PROMOTION_READY**。PR #9 已将功能主线合并到 `main`，PR #10 已补齐便携包 `SOURCE.txt` exact-head provenance；正式发布门只允许在最终 `main` CI 通过后创建 `v2.3.0` tag / GitHub Release，并在发布后回读 tag、资产哈希与 Source commit。
+当前结论：**V2.3.0 RELEASED / POST_RELEASE_READBACK_PASS**。功能主线已合并，便携包 `SOURCE.txt` provenance 已固定，发布前与最终 `main` exact-head CI 均通过。
+
+## V2.3.0 正式发布回读（2026-10-01）
+
+- Git tag：`v2.3.0` → `9ad401b0bb400f5c9428798f2352e9ae3e53b0c7`
+- GitHub Release：`Charlie Translate v2.3.0 - Translation Router V2`
+- Release source commit：`9ad401b0bb400f5c9428798f2352e9ae3e53b0c7`
+- Final Windows EXE SHA-256：`E6632261B072C3DEE065D2AE955879557DDF4B0937E74FD3CA5335EF4E161064`
+- Desktop ZIP SHA-256：`d425c7141502a8555bfe5677b19555b7a671777c2e8c93a6ba0c075e80db1713`
+- Extension ZIP SHA-256：`f90c858f1090d24d566d58c6f8233ae750684aa18d0bfe16fa7d45f7c0001622`
+- GitHub Release asset digest 与本地 `SHA256SUMS.txt` 一致；发布包内 `SOURCE.txt` 回读指向同一 source commit。
+- 最终 Windows 便携构建使用 Python 3.12.10 / PyInstaller 6.22.3 重新生成并完成文件清单哈希、真实本地翻译、PP-OCRv5、8990/8991/8992 loopback 与正常退出后端口关闭复验。
+
+`v2.3.0` tag 保持指向发布源代码提交；后续仅文档类 post-release closeout 可以位于 tag 之后的 `main`，不得改写已经发布的 tag。
