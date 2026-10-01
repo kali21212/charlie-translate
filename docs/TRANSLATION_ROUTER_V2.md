@@ -109,6 +109,35 @@ Translation Router V2 迁移：
 | Windows version updater | 同版本 `version:set -- 2.3.0` 通过，确认所有 Manifest 和 `.env` 一致 |
 | 自审复审 | 修复后台残留引用、间接远程检测、自定义 MTran 选择和迁移原子性问题；新增内容密钥模式扫描与 `git diff --check` 通过 |
 
-本地验证日志保存在忽略目录 `tmp/`，不进入 Git 提交；原有测试日志保留。构建产物位于 `build/chrome` 和 `build/desktop/CharlieTranslate`。本次只提交当前开发分支，未推送、发布、覆盖现用程序或修改 upstream。
+本地验证日志保存在忽略目录 `tmp/`，不进入 Git 提交；原有测试日志保留。构建产物位于 `build/chrome` 和 `build/desktop/CharlieTranslate`。上述“源码收口验证”阶段当时只提交当前开发分支，尚未推送、发布、覆盖现用程序或修改 upstream；后续实机部署结果见下一节。
 
-Chrome/Thorium 实机加载、实际语言模型可用性和新 EXE 运行验收仍待执行；上述自动化测试与产物回读不代表该实机发布门已通过。
+## V2.3.0 实机发布验收（2026-10-01）
+
+本轮在不修改源码的前提下，对提交 `4eca67a20dad884b41740d2a54d6e7d7f6cc45de` 的构建产物完成 Windows / Thorium 实机验收，并将通过验收的产物部署到 `D:\f`。现用浏览器会话未被强制重启。
+
+| 实机检查 | 结果 |
+| --- | --- |
+| Windows Desktop | 新构建 EXE 启动通过；悬浮入口可见；8990/8992 由 EXE 启动，首次翻译后 8991 子进程按需启动 |
+| Desktop 翻译 | 8992 `/health` 通过；真实 en → zh-Hans 翻译通过 |
+| Desktop OCR | 8990 PP-OCRv5 health 通过；生成的真实 PNG 文本 `HELLO 2026 LOCAL OCR` 被准确识别 |
+| 回环安全边界 | 8990/8991/8992 仅监听 `127.0.0.1`；缺少 Charlie header 或伪造普通网页 Origin 的访问均返回 403 |
+| Thorium 152 | 独立实机 Profile 成功加载 V2.3.0；扩展上下文暴露 `Translator` / `LanguageDetector` |
+| Thorium 本地模型 | en → zh-Hans 首次状态为 `downloadable`；在真实用户手势条件下完成浏览器本地模型下载并成功翻译 |
+| CharlieAuto Fresh State | 新 Profile 中 input / selection / subtitle 全部为 `CharlieAuto`，且唯一默认启用 Provider 为 CharlieAuto |
+| Desktop fallback | Thorium 扩展上下文访问 Desktop 8992 返回 200；浏览器本地能力与 Desktop fallback 同时可见 |
+| 部署回读 | `D:\f\Charlie-Translate-Desktop-V1\CharlieTranslate.exe` SHA-256 与构建产物完全一致；浏览器目录 Manifest 为 2.3.0 / MV3 |
+| 部署后运行 | 从 `D:\f` 启动的新 EXE 再次完成 OCR health、真实本地翻译及 8990/8991/8992 回环监听验收 |
+| 隐私扫描 | 发布扩展中未发现本机构建路径、项目源码路径或私人身份标识字符串 |
+
+Desktop EXE 当前发布 SHA-256：
+
+`E584014E0065CBA39A569823DD6116E5E5CBC4C75A6CA5107DFB54E65952BDDF`
+
+部署前旧版本以目录重命名方式保留为一次性 rollback：
+
+- `D:\f\Charlie-Translate-Desktop-V1-pre-v2.3.0-20261001-105652`
+- `D:\f\Charlie-Translate-V1-chrome-router-fixed-pre-v2.3.0-20261001-105652`
+
+Google Chrome 154 的隔离自动化会话可以正常启动 CDP，但命令行 `--load-extension` 路径未出现 Charlie Service Worker，因此**未把该结果记为 Chrome 扩展实机 PASS**。Chrome 仍需在真实 Profile 的 `chrome://extensions` 通过“加载已解压的扩展程序”做一次 UI 验收；该未完成项不影响已通过的 Thorium 主目标环境与 Desktop 发布验收。
+
+当前结论：**V2.3.0 REAL_MACHINE_PASS（Thorium + Windows Desktop）/ DEPLOYED_TO_D_F / CHROME_MANUAL_UI_PENDING**。尚未 merge `main`、创建 Git tag 或发布 GitHub Release。
