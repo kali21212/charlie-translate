@@ -125,6 +125,10 @@ Translation Router V2 迁移：
 | Thorium 本地模型 | en → zh-Hans 首次状态为 `downloadable`；在真实用户手势条件下完成浏览器本地模型下载并成功翻译 |
 | CharlieAuto Fresh State | 新 Profile 中 input / selection / subtitle 全部为 `CharlieAuto`，且唯一默认启用 Provider 为 CharlieAuto |
 | Desktop fallback | Thorium 扩展上下文访问 Desktop 8992 返回 200；浏览器本地能力与 Desktop fallback 同时可见 |
+| Chrome 154 手工 UI 加载 | 在隔离 Profile 的 `chrome://extensions` 开启开发者模式并通过“加载未打包的扩展程序”选择 `build/chrome`；重启后 Service Worker、Options 与网页 Content Script 均正常加载 |
+| Chrome 154 浏览器本地路由 | Desktop 完全关闭时，扩展上下文 `Translator` / `LanguageDetector` 均为 `available`；真实网页通过 CharlieAuto 完成 en → zh-CN 双语插入，未要求 EXE |
+| Chrome 154 Desktop fallback | 以启动参数禁用 `TranslationAPI,LanguageDetectionAPI` 后，扩展确认两项能力为 `undefined`；开启已部署 EXE 后，同一网页仍通过 CharlieAuto 完成翻译，证明 8992 fallback 生效 |
+| 双本地失败 / 零云回退 | 清空翻译缓存、使用全新未缓存文本、禁用浏览器 Translator 且关闭 Desktop；Service Worker 只尝试 `http://127.0.0.1:8992/kiss` 并收到 `ERR_CONNECTION_REFUSED`，没有任何 OpenAI / Gemini / Claude / Google Translate 等远程请求；页面日志明确提示“不会自动切换到云端” |
 | 部署回读 | `D:\f\Charlie-Translate-Desktop-V1\CharlieTranslate.exe` SHA-256 与构建产物完全一致；浏览器目录 Manifest 为 2.3.0 / MV3 |
 | 部署后运行 | 从 `D:\f` 启动的新 EXE 再次完成 OCR health、真实本地翻译及 8990/8991/8992 回环监听验收 |
 | 隐私扫描 | 发布扩展中未发现本机构建路径、项目源码路径或私人身份标识字符串 |
@@ -138,6 +142,6 @@ Desktop EXE 当前发布 SHA-256：
 - `D:\f\Charlie-Translate-Desktop-V1-pre-v2.3.0-20261001-105652`
 - `D:\f\Charlie-Translate-V1-chrome-router-fixed-pre-v2.3.0-20261001-105652`
 
-Google Chrome 154 的隔离自动化会话可以正常启动 CDP，但命令行 `--load-extension` 路径未出现 Charlie Service Worker，因此**未把该结果记为 Chrome 扩展实机 PASS**。Chrome 仍需在真实 Profile 的 `chrome://extensions` 通过“加载已解压的扩展程序”做一次 UI 验收；该未完成项不影响已通过的 Thorium 主目标环境与 Desktop 发布验收。
+Google Chrome 154 的命令行 `--load-extension` 在本机未可靠激活 Charlie，因此不把该快捷路径当作有效验收依据。随后已改用真实 `chrome://extensions` 开发者模式 UI 手工加载 `build/chrome`，并在浏览器重启后完成 Service Worker、Options、网页翻译、浏览器本地模型、Desktop fallback 及双本地失败零云回退的完整实机链路验证。
 
-当前结论：**V2.3.0 REAL_MACHINE_PASS（Thorium + Windows Desktop）/ DEPLOYED_TO_D_F / CHROME_MANUAL_UI_PENDING**。尚未 merge `main`、创建 Git tag 或发布 GitHub Release。
+当前结论：**V2.3.0 REAL_MACHINE_PASS（Chrome 154 + Thorium + Windows Desktop）/ DEPLOYED_TO_D_F / RELEASE_PROMOTION_READY**。代码无需因本轮实机验收修改；下一步仅剩 main 合并、Git tag / GitHub Release 与发布后 exact-head/readback。
