@@ -10,11 +10,13 @@ import unittest
 import urllib.error
 import urllib.request
 from types import SimpleNamespace
+from unittest.mock import patch
 from PIL import Image
 from services.ocr.server import Handler, ThreadingHTTPServer, decode_png, create_engine
 from desktop.app import region
 from desktop.editor import apply_redaction, ScreenshotEditor
 from desktop.retention import CacheRetention
+from desktop.build import SOURCE_REPOSITORY, write_source_record
 from desktop.translation_bridge import (
     TranslationBridgeHandler,
     BRIDGE_HEADER,
@@ -90,6 +92,19 @@ class EditorTests(unittest.TestCase):
         editor.undo(); editor.undo(); editor.redo()
         self.assertEqual(editor.base.getpixel((10, 10)), (0, 0, 0))
         editor.base.close()
+
+
+class BuildProvenanceTests(unittest.TestCase):
+    def test_portable_source_record_pins_exact_commit(self):
+        import tempfile
+        expected = "a" * 40
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(os.environ, {"CHARLIE_SOURCE_COMMIT": expected}, clear=False):
+                self.assertEqual(write_source_record(Path(tmp)), expected)
+            text = (Path(tmp) / "SOURCE.txt").read_text(encoding="utf-8")
+            self.assertIn(f"Repository: {SOURCE_REPOSITORY}", text)
+            self.assertIn(f"Commit: {expected}", text)
+            self.assertIn(f"/tree/{expected}", text)
 
 
 class RetentionTests(unittest.TestCase):
