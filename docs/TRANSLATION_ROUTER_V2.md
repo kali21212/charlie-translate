@@ -151,9 +151,9 @@ Google Chrome 154 的命令行 `--load-extension` 在本机未可靠激活 Charl
 - Git tag：`v2.3.0` → `9ad401b0bb400f5c9428798f2352e9ae3e53b0c7`
 - GitHub Release：`Charlie Translate v2.3.0 - Translation Router V2`
 - Release source commit：`9ad401b0bb400f5c9428798f2352e9ae3e53b0c7`
-- Final Windows EXE SHA-256：`225D8431D753FA69F587621FF39266C9F32311328A2E046EF0008ACB929FDD4B`
-- Desktop ZIP SHA-256：`1f11d122c10f4bcdc4909ebbb049221f90442638d3cadd17a30aa6a0481f120c`
-- Extension ZIP SHA-256：`b11887a316396e0681ca0fa4ee50908750e1d2891f10ecc0ee0822e48a3eb8e2`
+- Final Windows EXE SHA-256：`E6632261B072C3DEE065D2AE955879557DDF4B0937E74FD3CA5335EF4E161064`
+- Desktop ZIP SHA-256：`d425c7141502a8555bfe5677b19555b7a671777c2e8c93a6ba0c075e80db1713`
+- Extension ZIP SHA-256：`f90c858f1090d24d566d58c6f8233ae750684aa18d0bfe16fa7d45f7c0001622`
 - GitHub Release asset digest 与本地 `SHA256SUMS.txt` 一致；发布包内 `SOURCE.txt` 回读指向同一 source commit。
 - 最终 Windows 便携构建使用 Python 3.12.10 / PyInstaller 6.22.3 重新生成并完成文件清单哈希、真实本地翻译、PP-OCRv5、8990/8991/8992 loopback 与正常退出后端口关闭复验。
 
