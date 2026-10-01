@@ -2,6 +2,7 @@
 import hashlib
 import importlib.metadata
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,6 +10,35 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "desktop"
+SOURCE_REPOSITORY = "https://github.com/kali21212/charlie-translate"
+
+
+def source_commit():
+    explicit = os.environ.get("CHARLIE_SOURCE_COMMIT", "").strip()
+    if explicit:
+        commit = explicit
+    else:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    if len(commit) != 40 or any(ch not in "0123456789abcdefABCDEF" for ch in commit):
+        raise ValueError("Invalid Charlie source commit: " + commit)
+    return commit.lower()
+
+
+def write_source_record(app):
+    commit = source_commit()
+    (app / "SOURCE.txt").write_text(
+        f"Repository: {SOURCE_REPOSITORY}\n"
+        f"Commit: {commit}\n"
+        f"Source: {SOURCE_REPOSITORY}/tree/{commit}\n",
+        encoding="utf-8",
+    )
+    return commit
 
 
 def copy_checked(source, target, expected):
@@ -61,6 +91,7 @@ def main():
     for name in ("LICENSE", "UPSTREAM.md", "SECURITY.md"):
         shutil.copy2(ROOT / name, app / name)
     shutil.copy2(ROOT / "docs/DESKTOP.md", app / "使用说明.md")
+    write_source_record(app)
     shutil.copytree(ROOT / "desktop", app / "source/desktop", ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True)
     shutil.copytree(ROOT / "services", app / "source/services", ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True)
     manifest = [{"path": str(p.relative_to(app)).replace("\\", "/"),
