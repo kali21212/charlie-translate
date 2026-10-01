@@ -133,9 +133,9 @@ Translation Router V2 迁移：
 | 部署后运行 | 从 `D:\f` 启动的新 EXE 再次完成 OCR health、真实本地翻译及 8990/8991/8992 回环监听验收 |
 | 隐私扫描 | 发布扩展中未发现本机构建路径、项目源码路径或私人身份标识字符串 |
 
-Desktop EXE 当前发布 SHA-256：
+实机部署验收阶段的 EXE SHA-256 为 `E584014E0065CBA39A569823DD6116E5E5CBC4C75A6CA5107DFB54E65952BDDF`。该值用于记录当时 `D:\f` staging/deployment 验收证据，不再作为 GitHub Release 资产的长期权威校验值。
 
-`E584014E0065CBA39A569823DD6116E5E5CBC4C75A6CA5107DFB54E65952BDDF`
+正式 Release 的资产校验以该 Release 附带的 `SHA256SUMS.txt` 为准；Windows 便携包内的 `SOURCE.txt` 固定记录其对应的 Git exact-head，避免文档哈希与后续可重复构建形成循环依赖。
 
 部署前旧版本以目录重命名方式保留为一次性 rollback：
 
@@ -144,4 +144,4 @@ Desktop EXE 当前发布 SHA-256：
 
 Google Chrome 154 的命令行 `--load-extension` 在本机未可靠激活 Charlie，因此不把该快捷路径当作有效验收依据。随后已改用真实 `chrome://extensions` 开发者模式 UI 手工加载 `build/chrome`，并在浏览器重启后完成 Service Worker、Options、网页翻译、浏览器本地模型、Desktop fallback 及双本地失败零云回退的完整实机链路验证。
 
-当前结论：**V2.3.0 REAL_MACHINE_PASS（Chrome 154 + Thorium + Windows Desktop）/ DEPLOYED_TO_D_F / RELEASE_PROMOTION_READY**。代码无需因本轮实机验收修改；下一步仅剩 main 合并、Git tag / GitHub Release 与发布后 exact-head/readback。
+当前结论：**V2.3.0 REAL_MACHINE_PASS（Chrome 154 + Thorium + Windows Desktop）/ DEPLOYED_TO_D_F / MAIN_MERGED / RELEASE_PROMOTION_READY**。PR #9 已将功能主线合并到 `main`，PR #10 已补齐便携包 `SOURCE.txt` exact-head provenance；正式发布门只允许在最终 `main` CI 通过后创建 `v2.3.0` tag / GitHub Release，并在发布后回读 tag、资产哈希与 Source commit。
