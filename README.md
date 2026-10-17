@@ -13,7 +13,7 @@
 
 ## 桌面版：全局截图与增强 OCR
 
-Windows x64 便携版支持全局框选、可移动悬浮截图按钮、截图标注、不可逆隐私 Redact、自动复制、增强 OCR 和英文到简体中文本机翻译。完整解压后双击 `CharlieTranslate.exe`，无需安装 Python、Node、MTranServer 或填写 Key。浏览器插件可直接共用 EXE 内置 OCR 与翻译服务。安装与使用详见[桌面版说明](docs/DESKTOP.md)。
+Windows x64 便携版支持全局框选、可移动悬浮截图按钮、紧凑可移动标注工具栏、不可逆隐私 Redact、自动复制、PP-OCRv5 智能段落整理和英文到简体中文本机翻译。主翻译窗口可自由缩放：宽窗口左右双栏、窄窗口自动上下布局，长文章按段落批量翻译并保留阅读结构。完整解压后双击 `CharlieTranslate.exe`，无需安装 Python、Node、MTranServer 或填写 Key。浏览器插件可直接共用 EXE 内置 OCR 与翻译服务。安装与使用详见[桌面版说明](docs/DESKTOP.md)。
 
 ## 安装和本机翻译
 

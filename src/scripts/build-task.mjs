@@ -19,7 +19,10 @@ if (!target) {
   process.exit(1);
 }
 
-const buildRoot = "build";
+// A non-default root keeps smoke builds separate from the user's loaded extension.
+const buildRoot = process.env.CHARLIE_BUILD_ROOT
+  ? path.resolve(process.env.CHARLIE_BUILD_ROOT)
+  : "build";
 const targetDir = path.join(buildRoot, target);
 
 // 辅助：获取构建目录下的文件路径
@@ -46,7 +49,7 @@ try {
     // 标准 React 构建流程
     const clientEnv = target === "web" ? "userscript" : target;
 
-    process.env.BUILD_PATH = `./${targetDir}`;
+    process.env.BUILD_PATH = path.resolve(targetDir);
     process.env.REACT_APP_CLIENT = clientEnv;
     process.env.FORCE_COLOR = "1";
     process.env.NODE_OPTIONS = [

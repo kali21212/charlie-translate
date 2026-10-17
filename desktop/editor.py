@@ -14,30 +14,47 @@ TOOLS = (
     ("选择", "select"), ("矩形", "rect"), ("圆/椭圆", "ellipse"),
     ("直线", "line"), ("箭头", "arrow"), ("铅笔", "pencil"),
     ("荧光笔", "highlight"), ("文字", "text"), ("序号", "number"),
-    ("隐私马赛克", "redact_pixel"), ("隐私模糊", "redact_blur"),
-    ("隐私遮盖", "redact_solid"),
+    ("隐私抹除", "redact"),
 )
 
 
 def apply_redaction(image, box, mode, color="#000000"):
-    """Destructively replace pixels inside box; returns no reversible snapshot."""
-    crop = image.crop(box)
+    """Erase pixels using only synthetic, source-independent replacements.
+
+    Even a heavy blur or a coarse pixelation derived from source pixels can
+    reveal information. These cosmetic variants never sample original pixels.
+    """
+    left, top, right, bottom = box
+    width, height = right - left, bottom - top
+    if width <= 0 or height <= 0:
+        return
+    if mode == "redact_solid":
+        redacted = Image.new("RGB", (width, height), color)
+    elif mode == "redact_pixel":
+        redacted = Image.new("RGB", (width, height), "#707c90")
+        draw = ImageDraw.Draw(redacted)
+        palette = ("#626e82", "#8390a1", "#a4afbd", "#748297")
+        block = 12
+        for y in range(0, height, block):
+            for x in range(0, width, block):
+                shade = palette[((x // block) * 7 + (y // block) * 11) % len(palette)]
+                draw.rectangle(
+                    (x, y, min(x + block - 1, width - 1), min(y + block - 1, height - 1)),
+                    fill=shade,
+                )
+    elif mode == "redact_blur":
+        pattern = Image.new("RGB", (width, height), "#707c90")
+        draw = ImageDraw.Draw(pattern)
+        draw.rectangle((0, 0, width // 2, height), fill="#a2acb9")
+        draw.rectangle((width // 2, 0, width, height), fill="#586579")
+        redacted = pattern.filter(ImageFilter.GaussianBlur(radius=max(8, min(width, height) // 6)))
+        pattern.close()
+    else:
+        raise ValueError("unknown redaction mode")
     try:
-        if mode == "redact_pixel":
-            w, h = crop.size
-            small = crop.resize((max(1, w // 12), max(1, h // 12)), Image.Resampling.BILINEAR)
-            redacted = small.resize((w, h), Image.Resampling.NEAREST)
-            small.close()
-        elif mode == "redact_blur":
-            redacted = crop.filter(ImageFilter.GaussianBlur(radius=max(8, min(crop.size) / 12)))
-        elif mode == "redact_solid":
-            redacted = Image.new("RGB", crop.size, color)
-        else:
-            raise ValueError("unknown redaction mode")
-        image.paste(redacted, box[:2])
-        redacted.close()
+        image.paste(redacted, (left, top))
     finally:
-        crop.close()
+        redacted.close()
 
 
 class ScreenshotEditor:
@@ -50,6 +67,7 @@ class ScreenshotEditor:
         image.close()
         self.annotations, self.undo_stack, self.redo_stack = [], [], []
         self.tool, self.color, self.width = "arrow", "#ff2d2d", 4
+        self.redact_mode = "redact_solid"
         self.fill = tk.BooleanVar(value=False)
         self.radius = tk.IntVar(value=12)
         self.sequence = 1
@@ -74,37 +92,97 @@ class ScreenshotEditor:
         self.toolbar.overrideredirect(True)
         self.toolbar.attributes("-topmost", True)
         self.toolbar.configure(bg="#ffffff", highlightbackground="#cbd5e1", highlightthickness=1)
-        self.icons = tk.Canvas(self.toolbar, height=44, bg="white", highlightthickness=0)
+        self.icons = tk.Canvas(self.toolbar, height=44, bg="white", highlightthickness=0, cursor="arrow")
         self.icons.pack()
         self.tool_actions = [(label, tool, lambda t=tool: self.set_tool(t)) for label, tool in TOOLS]
-        self.tool_actions += [("撤销 Ctrl+Z", "undo", self.undo), ("重做 Ctrl+Y", "redo", self.redo), ("删除普通标注", "delete", self.delete_selected), ("识字翻译", "ocr", lambda: self.finish("ocr")), ("复制并完成 Enter", "finish", self.finish), ("取消 Esc", "cancel", self.cancel)]
+        self.tool_actions += [
+            ("撤销 Ctrl+Z", "undo", self.undo),
+            ("重做 Ctrl+Y", "redo", self.redo),
+            ("删除普通标注", "delete", self.delete_selected),
+            ("保存截图", "save", lambda: self.finish("save")),
+            ("识字翻译", "ocr", lambda: self.finish("ocr")),
+            ("复制并完成 Enter", "finish", self.finish),
+            ("取消 Esc", "cancel", self.cancel),
+        ]
         self.button_positions = []
         self.group_separators = []
-        x = 8
+        x = 28
         for index in range(len(self.tool_actions)):
-            if index in (9, 12, 15):
+            if index in (9, 10, 13):
                 self.group_separators.append(x + 1)
                 x += 9
             self.button_positions.append(x)
             x += self.BUTTON_STEP
         self.toolbar_width = x + 8
-        self.icons.configure(width=self.toolbar_width-2)
-        self.icons.bind("<Button-1>", self._toolbar_click)
+        self.icons.configure(width=self.toolbar_width - 2)
+        self.icons.bind("<ButtonPress-1>", self._toolbar_press)
+        self.icons.bind("<B1-Motion>", self._toolbar_drag)
+        self.icons.bind("<ButtonRelease-1>", self._toolbar_release)
         self.icons.bind("<Motion>", self._toolbar_hover)
         self.icons.bind("<Leave>", self._toolbar_leave)
-        tk.Frame(self.toolbar, height=1, bg="#e2e8f0").pack(fill="x", padx=8, pady=(0, 5))
-        options = tk.Frame(self.toolbar, bg="white")
-        options.pack(fill="x", padx=8, pady=(0, 5))
+        tk.Frame(self.toolbar, height=1, bg="#e2e8f0").pack(fill="x", padx=8, pady=(0, 4))
+
+        self.options_host = tk.Frame(self.toolbar, bg="white", height=31)
+        self.options_host.pack(fill="x", padx=8, pady=(0, 4))
+        self.options_host.pack_propagate(False)
+        self.draw_options = tk.Frame(self.options_host, bg="white")
         for color in ("#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#ffffff", "#111827"):
-            tk.Button(options, bg=color, activebackground=color, width=2, bd=0, command=lambda c=color: self._color(c)).pack(side="left", padx=3)
-        tk.Button(options, text="+", bd=0, bg="white", fg="#64748b", command=self.pick_color).pack(side="left", padx=2)
-        tk.Label(options, text="粗细", bg="white", fg="#64748b", font=("Microsoft YaHei UI", 9)).pack(side="left", padx=(9,3))
-        self.width_box = ttk.Spinbox(options, from_=1, to=20, width=3, command=self._sync_width)
+            tk.Button(
+                self.draw_options, bg=color, activebackground=color, width=2, bd=0,
+                command=lambda c=color: self._color(c),
+            ).pack(side="left", padx=3)
+        tk.Button(
+            self.draw_options, text="+", bd=0, bg="white", fg="#64748b",
+            command=self.pick_color,
+        ).pack(side="left", padx=2)
+        tk.Label(
+            self.draw_options, text="粗细", bg="white", fg="#64748b",
+            font=("Microsoft YaHei UI", 9),
+        ).pack(side="left", padx=(9, 3))
+        self.width_box = ttk.Spinbox(self.draw_options, from_=1, to=20, width=3, command=self._sync_width)
         self.width_box.set("4")
         self.width_box.pack(side="left")
-        tk.Checkbutton(options, text="填充", variable=self.fill, bg="white", activebackground="white", font=("Microsoft YaHei UI",9), bd=0).pack(side="left", padx=8)
-        tk.Label(options, text="圆角", bg="white", fg="#64748b", font=("Microsoft YaHei UI",9)).pack(side="left")
-        ttk.Spinbox(options, from_=0, to=80, width=3, textvariable=self.radius).pack(side="left", padx=3)
+        tk.Checkbutton(
+            self.draw_options, text="填充", variable=self.fill, bg="white",
+            activebackground="white", font=("Microsoft YaHei UI", 9), bd=0,
+        ).pack(side="left", padx=8)
+        tk.Label(
+            self.draw_options, text="圆角", bg="white", fg="#64748b",
+            font=("Microsoft YaHei UI", 9),
+        ).pack(side="left")
+        ttk.Spinbox(self.draw_options, from_=0, to=80, width=3, textvariable=self.radius).pack(side="left", padx=3)
+
+        self.redact_options = tk.Frame(self.options_host, bg="white")
+        tk.Label(
+            self.redact_options, text="隐私抹除", bg="white", fg="#b91c1c",
+            font=("Microsoft YaHei UI", 9, "bold"),
+        ).pack(side="left", padx=(2, 7))
+        self.redact_buttons = {}
+        for label, mode in (
+            ("实色抹除（最强）", "redact_solid"),
+            ("安全马赛克", "redact_pixel"),
+            ("安全模糊", "redact_blur"),
+        ):
+            button = tk.Button(
+                self.redact_options, text=label, bd=0, padx=7, pady=2,
+                bg="#fee2e2" if mode == self.redact_mode else "#f8fafc",
+                activebackground="#fecaca",
+                command=lambda m=mode: self.set_redact_mode(m),
+            )
+            button.pack(side="left", padx=2)
+            self.redact_buttons[mode] = button
+        tk.Label(
+            self.redact_options, text="提交即改写像素 · 不可撤销",
+            bg="white", fg="#991b1b", font=("Microsoft YaHei UI", 9),
+        ).pack(side="left", padx=8)
+        self.neutral_options = tk.Frame(self.options_host, bg="white")
+        tk.Label(
+            self.neutral_options,
+            text="拖动左侧把手可移动工具栏 · Enter 完成复制 · Esc 取消",
+            bg="white", fg="#64748b", font=("Microsoft YaHei UI", 9),
+        ).pack(side="left", padx=4)
+
+        self._sync_options()
         self._draw_toolbar()
         self.canvas.bind("<ButtonPress-1>", self.press)
         self.canvas.bind("<B1-Motion>", self.move)
@@ -148,6 +226,55 @@ class ScreenshotEditor:
     def _color(self, color):
         self.color=color
 
+    def _sync_options(self):
+        if not hasattr(self, "draw_options"):
+            return
+        self.draw_options.pack_forget()
+        self.redact_options.pack_forget()
+        self.neutral_options.pack_forget()
+        if self.tool == "redact":
+            self.redact_options.pack(fill="x")
+        elif self.tool in {"rect", "ellipse", "line", "arrow", "pencil", "highlight", "text", "number"}:
+            self.draw_options.pack(fill="x")
+        else:
+            self.neutral_options.pack(fill="x")
+
+    def set_redact_mode(self, mode):
+        if mode not in {"redact_solid", "redact_pixel", "redact_blur"}:
+            raise ValueError("unknown redaction mode")
+        self.redact_mode = mode
+        for key, button in self.redact_buttons.items():
+            button.configure(bg="#fee2e2" if key == mode else "#f8fafc")
+        names = {
+            "redact_solid": "实色抹除（最强）",
+            "redact_pixel": "安全马赛克",
+            "redact_blur": "安全模糊",
+        }
+        self.status.set(f"隐私抹除：{names[mode]}。拖框后立即改写底层像素，不可撤销。")
+
+    def _toolbar_press(self, event):
+        if event.x < 24:
+            self.toolbar_drag_origin = (
+                event.x_root, event.y_root,
+                self.toolbar.winfo_x(), self.toolbar.winfo_y(),
+            )
+            return
+        self.toolbar_drag_origin = None
+        self._toolbar_click(event)
+
+    def _toolbar_drag(self, event):
+        origin = getattr(self, "toolbar_drag_origin", None)
+        if not origin:
+            return
+        x0, y0, wx, wy = origin
+        sw, sh = self.toolbar.winfo_screenwidth(), self.toolbar.winfo_screenheight()
+        x = max(0, min(sw - self.toolbar_width, wx + event.x_root - x0))
+        y = max(0, min(sh - 84, wy + event.y_root - y0))
+        self._place(self.toolbar, x, y, self.toolbar_width, 84)
+
+    def _toolbar_release(self, _event):
+        self.toolbar_drag_origin = None
+
     def _toolbar_click(self, event):
         index=self._toolbar_hit(event)
         if index is not None:
@@ -181,13 +308,18 @@ class ScreenshotEditor:
             self.tooltip.overrideredirect(True)
             self.tooltip.attributes("-topmost",True)
             text=self.tool_actions[index][0]
-            if self.tool_actions[index][1].startswith("redact_"):
-                text += " · 不可撤销"
+            if self.tool_actions[index][1] == "redact":
+                text += " · 安全抹除 · 不可撤销"
             tk.Label(self.tooltip,text=text,bg="#111827",fg="white",padx=8,pady=4,font=("Microsoft YaHei UI",9)).pack()
             self.tooltip.geometry(f"+{event.x_root-20}+{event.y_root-36}")
 
     def _draw_toolbar(self):
         self.icons.delete("all")
+        # Snow-inspired drag grip: the toolbar is intentionally movable instead of
+        # spawning additional floating windows for common actions.
+        for y in (14, 21, 28):
+            self.icons.create_oval(9, y - 1, 11, y + 1, fill="#94a3b8", outline="")
+            self.icons.create_oval(15, y - 1, 17, y + 1, fill="#94a3b8", outline="")
         for x in self.group_separators:
             self.icons.create_line(x,10,x,33,fill="#cbd5e1")
         for index,(_label,tool,_action) in enumerate(self.tool_actions):
@@ -223,15 +355,9 @@ class ScreenshotEditor:
         elif tool=="number":
             canvas.create_oval(x-9,y-9,x+9,y+9,outline=color,width=2)
             canvas.create_text(x,y,text="1",fill=color,font=("Segoe UI",10,"bold"))
-        elif tool=="redact_pixel":
-            for a in (-6,0,6):
-                for b in (-6,0,6):
-                    canvas.create_rectangle(x+a-2,y+b-2,x+a+2,y+b+2,fill=color,outline="")
-        elif tool=="redact_blur":
-            for b in (-5,0,5):
-                line((-8,b),(-4,b-2),(0,b),(4,b+2),(8,b))
-        elif tool=="redact_solid":
-            canvas.create_rectangle(x-8,y-7,x+8,y+7,fill=color,outline="")
+        elif tool=="redact":
+            canvas.create_rectangle(x-8,y-6,x+8,y+7,fill=color,outline=color)
+            canvas.create_arc(x-5,y-10,x+5,y+1,start=0,extent=180,style="arc",outline=color,width=2)
         elif tool in ("undo","redo"):
             flip=-1 if tool=="redo" else 1
             line((-7*flip,-3),(2*flip,-3),(7*flip,1),(7*flip,6))
@@ -240,6 +366,10 @@ class ScreenshotEditor:
             canvas.create_rectangle(x-5,y-4,x+5,y+8,outline=color,width=2)
             line((-8,-6),(8,-6));line((-2,-9),(2,-9))
             line((-2,-1),(-2,5));line((2,-1),(2,5))
+        elif tool=="save":
+            canvas.create_rectangle(x-7,y-8,x+7,y+8,outline=color,width=2)
+            canvas.create_rectangle(x-4,y-7,x+3,y-2,outline=color,width=1)
+            canvas.create_rectangle(x-4,y+1,x+4,y+7,outline=color,width=1)
         elif tool=="ocr":
             canvas.create_text(x,y,text="译",fill=color,font=("Microsoft YaHei UI",12,"bold"))
         elif tool=="finish":
@@ -250,9 +380,10 @@ class ScreenshotEditor:
     def set_tool(self, tool):
         self.tool = tool
         self.selected = None
+        self._sync_options()
         self._draw_toolbar()
-        if tool.startswith("redact_"):
-            self.status.set("隐私遮盖会立即改写底层像素，并清空此前可恢复历史；此操作不可撤销。")
+        if tool == "redact":
+            self.status.set("隐私抹除会立即改写底层像素并清空此前可恢复历史；默认使用最强实色抹除。")
         else:
             self.status.set(f"当前工具：{dict((v,k) for k,v in TOOLS).get(tool, tool)}")
 
@@ -298,7 +429,8 @@ class ScreenshotEditor:
             self._render()
             return
         self.start = point
-        self.current = {"type": self.tool, "points": [point], "color": self.color,
+        item_type = self.redact_mode if self.tool == "redact" else self.tool
+        self.current = {"type": item_type, "points": [point], "color": self.color,
                         "width": self.width, "fill": bool(self.fill.get()), "radius": int(self.radius.get())}
 
     def move(self, event):
@@ -324,7 +456,7 @@ class ScreenshotEditor:
             else:
                 self.current["points"][-1] = point
         item, self.current = self.current, None
-        if self.tool.startswith("redact_"):
+        if item["type"].startswith("redact_"):
             self._commit_redaction(item)
             return
         self._snapshot()
@@ -375,7 +507,19 @@ class ScreenshotEditor:
         box = self._redact_box(item)
         if not box:
             return
-        apply_redaction(self.base, box, item["type"], self.color if self.color else "#000000")
+        color = "#000000" if item["type"] == "redact_solid" else (self.color or "#000000")
+        # Security boundary: flatten all prior annotations before erasing.
+        # Otherwise an annotation drawn before redaction could still be
+        # composited on top of the erased area on final export.
+        flattened = self._flatten()
+        try:
+            apply_redaction(flattened, box, item["type"], color)
+        except Exception:
+            flattened.close()
+            raise
+        self.base.close()
+        self.base = flattened
+        self.annotations.clear()
         self.undo_stack.clear()
         self.redo_stack.clear()
         self.selected = None

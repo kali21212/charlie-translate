@@ -19,10 +19,12 @@ from desktop.editor import ScreenshotEditor
 from desktop.retention import CacheRetention
 from desktop.translation_bridge import start_translation_bridge
 from desktop.floating import FloatingButton
+from desktop.text_layout import format_ocr_result, reflow_plain_text
 from desktop.hotkeys import Hotkeys, IDS, DEFAULTS, event_hotkey, WindowsHotkeyPump
 from services.ocr.server import create_engine, Handler, ThreadingHTTPServer
 
 ROOT = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
+WINDOW_TITLE = "Charlie Translate · 截图 / OCR / 翻译"
 
 
 def region(start, end, width, height):
@@ -102,6 +104,7 @@ class App:
         self.root, self.image, self.photo = root, None, None
         self.engine, self.api, self.translate_api, self.busy, self.selection, self.editor = None, None, None, False, None, None
         self.generation, self.closed = 0, False
+        self.tray = None
         self.ocr_lock = threading.Lock()
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.results = queue.Queue()
@@ -115,25 +118,35 @@ class App:
             self.retention.root,
             self.floating_hidden,
         )
-        root.title("Charlie Translate · 本地截图识字")
-        root.geometry("980x840")
-        root.minsize(820, 760)
-        root.configure(bg="#eef3f9")
+        root.title(WINDOW_TITLE)
+        saved_geometry = self.retention.get_ui_setting("mainWindowGeometry", "1120x780")
+        try:
+            root.geometry(str(saved_geometry))
+        except tk.TclError:
+            root.geometry("1120x780")
+        root.minsize(760, 620)
+        root.configure(bg="#f5f7fb")
         style = ttk.Style(root)
         style.theme_use("clam")
-        style.configure("TFrame", background="#eef3f9")
-        style.configure("TLabel", background="#eef3f9", font=("Microsoft YaHei UI", 10))
-        style.configure("TButton", font=("Microsoft YaHei UI", 10), padding=(9, 6))
+        style.configure("TFrame", background="#f5f7fb")
+        style.configure("Card.TFrame", background="#ffffff")
+        style.configure("TLabel", background="#f5f7fb", font=("Microsoft YaHei UI", 10))
+        style.configure("Card.TLabel", background="#ffffff", font=("Microsoft YaHei UI", 10))
+        style.configure("TButton", font=("Microsoft YaHei UI", 10), padding=(9, 6), background="#ffffff", borderwidth=0, relief="flat")
+        style.map("TButton", background=[("active", "#e7edf5")])
         style.configure("Primary.TButton", background="#2563eb", foreground="white", borderwidth=0)
         style.map("Primary.TButton", background=[("active", "#1d4ed8"), ("disabled", "#cbd5e1")])
-        style.configure("TButton", background="#ffffff", borderwidth=0, relief="flat")
-        style.map("TButton", background=[("active", "#e2e8f0")])
-        frame = ttk.Frame(root, padding=18)
+        style.configure("Subtle.TButton", background="#eef2f7", foreground="#334155", borderwidth=0)
+        style.map("Subtle.TButton", background=[("active", "#dde6f0")])
+        frame = ttk.Frame(root, padding=14)
         frame.pack(fill="both", expand=True)
         footer = ttk.Frame(frame)
         footer.pack(side="bottom", fill="x")
-        ttk.Label(frame, text="Charlie Translate", font=("Microsoft YaHei UI", 21, "bold")).pack(anchor="w")
-        ttk.Label(frame, text="截图与增强识字留在本机 · 翻译只连接本机服务 · 不自动保存图片").pack(anchor="w", pady=(3, 12))
+        header = ttk.Frame(frame)
+        header.pack(fill="x")
+        ttk.Label(header, text="Charlie Translate", font=("Microsoft YaHei UI", 20, "bold")).pack(side="left")
+        ttk.Button(header, text="设置", command=self.open_settings, style="Subtle.TButton").pack(side="right")
+        ttk.Label(frame, text="本机截图 · PP-OCRv5 · 段落智能整理 · 本地翻译；图片不自动上传或保存").pack(anchor="w", pady=(2, 8))
         bar = ttk.Frame(frame)
         bar.pack(fill="x")
         self.controls = []
@@ -145,57 +158,67 @@ class App:
             self.controls.append(button)
         self.preview = tk.Label(frame, bg="#dce6f0", text="框选桌面、其他软件或浏览器，也可以打开本机图片", font=("Microsoft YaHei UI", 12), fg="#38516a")
         self.preview.pack(fill="x", pady=12, ipady=4)
-        panels = ttk.Frame(frame)
-        panels.pack(fill="both", expand=True)
-        panels.columnconfigure((0, 1), weight=1)
-        panels.rowconfigure(1, weight=1)
+        self.panels = ttk.Frame(frame)
+        self.panels.pack(fill="both", expand=True)
         self.original_heading = tk.StringVar(value="原文 · 可以编辑")
-        ttk.Label(panels, textvariable=self.original_heading).grid(row=0, column=0, sticky="w")
-        ttk.Label(panels, text="简体中文译文").grid(row=0, column=1, sticky="w", padx=(12, 0))
-        self.original = tk.Text(panels, width=35, height=6, wrap="word", font=("Microsoft YaHei UI", 12), padx=10, pady=10, undo=True)
-        self.translated = tk.Text(panels, width=35, height=6, wrap="word", font=("Microsoft YaHei UI", 12), padx=10, pady=10, state="disabled")
+        self.original_card = ttk.Frame(self.panels, style="Card.TFrame", padding=8)
+        self.translated_card = ttk.Frame(self.panels, style="Card.TFrame", padding=8)
+        self.original_card.columnconfigure(0, weight=1)
+        self.original_card.rowconfigure(1, weight=1)
+        self.translated_card.columnconfigure(0, weight=1)
+        self.translated_card.rowconfigure(1, weight=1)
+        ttk.Label(self.original_card, textvariable=self.original_heading, style="Card.TLabel",
+                  font=("Microsoft YaHei UI", 10, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 5))
+        ttk.Label(self.translated_card, text="简体中文译文", style="Card.TLabel",
+                  font=("Microsoft YaHei UI", 10, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 5))
+        self.original = tk.Text(
+            self.original_card, width=35, height=8, wrap="word",
+            font=("Microsoft YaHei UI", 12), padx=12, pady=10, undo=True,
+            relief="flat", bd=0, bg="#ffffff", fg="#0f172a",
+            selectbackground="#bfdbfe", spacing1=2, spacing3=6,
+        )
+        self.translated = tk.Text(
+            self.translated_card, width=35, height=8, wrap="word",
+            font=("Microsoft YaHei UI", 12), padx=12, pady=10, state="disabled",
+            relief="flat", bd=0, bg="#f8fafc", fg="#0f172a",
+            selectbackground="#bfdbfe", spacing1=2, spacing3=6,
+        )
+        self.original_scroll = ttk.Scrollbar(self.original_card, orient="vertical", command=self.original.yview)
+        self.translated_scroll = ttk.Scrollbar(self.translated_card, orient="vertical", command=self.translated.yview)
+        self.original.configure(yscrollcommand=self.original_scroll.set)
+        self.translated.configure(yscrollcommand=self.translated_scroll.set)
+        self.original.grid(row=1, column=0, sticky="nsew")
+        self.original_scroll.grid(row=1, column=1, sticky="ns")
+        self.translated.grid(row=1, column=0, sticky="nsew")
+        self.translated_scroll.grid(row=1, column=1, sticky="ns")
         self.original.bind("<Control-Return>", self.translate_shortcut)
-        self.original.grid(row=1, column=0, sticky="nsew", pady=6)
-        self.translated.grid(row=1, column=1, sticky="nsew", pady=6, padx=(12, 0))
+        self.panel_layout_mode = None
+        self.panels.bind("<Configure>", self._layout_text_panels)
+        self.root.after_idle(self._layout_text_panels)
+
         actions = ttk.Frame(footer)
-        actions.pack(fill="x", pady=(6, 10))
+        actions.pack(fill="x", pady=(6, 6))
         self.translate_button = ttk.Button(actions, text="翻译为中文（本机）", command=self.translate, style="Primary.TButton")
         self.translate_button.pack(side="left")
+        ttk.Button(actions, text="整理段落", command=self.reflow_original, style="Subtle.TButton").pack(side="left", padx=(6, 0))
         ttk.Button(actions, text="复制原文", command=lambda: self.copy_text(self.original)).pack(side="left", padx=6)
         ttk.Button(actions, text="复制译文", command=lambda: self.copy_text(self.translated)).pack(side="left")
-        self.on_top = tk.BooleanVar(value=False)
-        ttk.Checkbutton(actions,text="置顶主窗口",variable=self.on_top,command=lambda: self.root.attributes("-topmost",self.on_top.get())).pack(side="right")
+        self.on_top = tk.BooleanVar(value=bool(self.retention.get_ui_setting("mainAlwaysOnTop", False)))
+        self.root.attributes("-topmost", self.on_top.get())
+        ttk.Checkbutton(actions, text="置顶", variable=self.on_top, command=self.toggle_on_top).pack(side="right")
         self.floating_enabled = tk.BooleanVar(value=self.floating.default_enabled())
-        ttk.Checkbutton(actions,text="悬浮截图按钮",variable=self.floating_enabled,command=self.toggle_floating).pack(side="right", padx=(0, 10))
-        retention_bar = ttk.Frame(footer)
-        retention_bar.pack(fill="x", pady=(0, 8))
-        ttk.Label(retention_bar, text="应用缓存有效期").pack(side="left")
+        ttk.Checkbutton(actions, text="悬浮截图", variable=self.floating_enabled, command=self.toggle_floating).pack(side="right", padx=(0, 10))
+
         self.retention_days = tk.StringVar(value=str(self.retention.days))
-        retention = ttk.Combobox(
-            retention_bar,
-            width=10,
-            state="readonly",
-            textvariable=self.retention_days,
-            values=("0", "1", "3", "7", "14", "30"),
-        )
-        retention.pack(side="left", padx=6)
-        ttk.Label(retention_bar, text="天（0=仅本次；默认7天。手动保存的文件不自动删除）").pack(side="left")
-        retention.bind("<<ComboboxSelected>>", self.change_retention)
-        ttk.Button(retention_bar, text="快捷键设置", command=self.configure_hotkeys).pack(side="right")
         self.cache_location = tk.StringVar(value=str(self.retention.cache_dir))
         self.save_location = tk.StringVar(value=str(self.retention.save_directory))
-        for label, variable, kind in (("缓存位置", self.cache_location, "cache"), ("默认保存位置", self.save_location, "save")):
-            row = ttk.Frame(footer)
-            row.pack(fill="x", pady=(0, 6))
-            ttk.Label(row, text=label, width=13).pack(side="left")
-            ttk.Entry(row, textvariable=variable, state="readonly").pack(side="left", fill="x", expand=True, padx=6)
-            ttk.Button(row, text="打开文件夹", command=lambda k=kind: self.open_directory(k)).pack(side="left", padx=3)
-            ttk.Button(row, text="修改路径", command=lambda k=kind: self.choose_directory(k)).pack(side="left")
+        self.auto_reflow_ocr = tk.BooleanVar(value=bool(self.retention.get_ui_setting("autoReflowOcr", True)))
         self.progress = ttk.Progressbar(footer, mode="indeterminate")
-        self.progress.pack(fill="x", pady=(3, 6))
+        self.progress.pack(fill="x", pady=(2, 5))
         self.task_serial = 0
         self.status = tk.StringVar(value="正在加载增强 OCR 模型…")
-        ttk.Label(footer, textvariable=self.status, wraplength=880).pack(anchor="w")
+        self.status_label = ttk.Label(footer, textvariable=self.status, wraplength=1000)
+        self.status_label.pack(anchor="w", fill="x")
         self.submit(self.initialize, self.ready)
         self.hotkey_api = WindowsHotkeyPump() if sys.platform == "win32" else None
         self.hotkeys = Hotkeys(self.retention.root, self.hotkey_api)
@@ -207,7 +230,119 @@ class App:
             self.floating.show()
         root.after(80, self.poll)
         root.after(6 * 60 * 60 * 1000, self.cleanup_cache)
-        root.protocol("WM_DELETE_WINDOW", self.close)
+        root.protocol("WM_DELETE_WINDOW", self.request_close)
+        root.bind("<Unmap>", self._on_unmap, add="+")
+
+    def _layout_text_panels(self, event=None):
+        if event is not None and event.widget is not self.panels:
+            return
+        width = self.panels.winfo_width()
+        mode = "columns" if width >= 900 else "rows"
+        self.status_label.configure(wraplength=max(420, self.root.winfo_width() - 50))
+        if mode == self.panel_layout_mode:
+            return
+        self.panel_layout_mode = mode
+        self.original_card.grid_forget()
+        self.translated_card.grid_forget()
+        for index in (0, 1):
+            self.panels.columnconfigure(index, weight=0, uniform="")
+            self.panels.rowconfigure(index, weight=0, uniform="")
+        if mode == "columns":
+            self.panels.columnconfigure((0, 1), weight=1, uniform="translation")
+            self.panels.rowconfigure(0, weight=1)
+            self.original_card.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+            self.translated_card.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        else:
+            self.panels.columnconfigure(0, weight=1)
+            self.panels.rowconfigure((0, 1), weight=1, uniform="translation")
+            self.original_card.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
+            self.translated_card.grid(row=1, column=0, sticky="nsew", pady=(5, 0))
+
+    def toggle_on_top(self):
+        value = bool(self.on_top.get())
+        self.root.attributes("-topmost", value)
+        self.retention.set_ui_setting("mainAlwaysOnTop", value)
+
+    def set_auto_reflow(self):
+        self.retention.set_ui_setting("autoReflowOcr", bool(self.auto_reflow_ocr.get()))
+        self.status.set(
+            "OCR 段落智能整理已开启。" if self.auto_reflow_ocr.get()
+            else "OCR 段落智能整理已关闭；将保留识别引擎原始换行。"
+        )
+
+    def open_settings(self):
+        dialog = getattr(self, "settings_dialog", None)
+        if dialog and dialog.winfo_exists():
+            dialog.deiconify()
+            dialog.lift()
+            return
+        dialog = self.settings_dialog = tk.Toplevel(self.root)
+        dialog.title("Charlie Translate · 设置")
+        dialog.geometry("720x430")
+        dialog.minsize(620, 390)
+        dialog.transient(self.root)
+        body = ttk.Frame(dialog, padding=18)
+        body.pack(fill="both", expand=True)
+        ttk.Label(body, text="界面与本地数据", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Checkbutton(
+            body,
+            text="OCR 后自动整理段落与阅读顺序（推荐）",
+            variable=self.auto_reflow_ocr,
+            command=self.set_auto_reflow,
+        ).pack(anchor="w", pady=(12, 8))
+
+        retention_row = ttk.Frame(body)
+        retention_row.pack(fill="x", pady=(2, 12))
+        ttk.Label(retention_row, text="应用缓存有效期").pack(side="left")
+        retention = ttk.Combobox(
+            retention_row,
+            width=8,
+            state="readonly",
+            textvariable=self.retention_days,
+            values=("0", "1", "3", "7", "14", "30"),
+        )
+        retention.pack(side="left", padx=8)
+        ttk.Label(retention_row, text="天（0=仅本次；手动保存文件不自动删除）").pack(side="left")
+        retention.bind("<<ComboboxSelected>>", self.change_retention)
+
+        for label, variable, kind in (
+            ("缓存位置", self.cache_location, "cache"),
+            ("默认保存位置", self.save_location, "save"),
+        ):
+            row = ttk.Frame(body)
+            row.pack(fill="x", pady=5)
+            ttk.Label(row, text=label, width=12).pack(side="left")
+            ttk.Entry(row, textvariable=variable, state="readonly").pack(
+                side="left", fill="x", expand=True, padx=6
+            )
+            ttk.Button(row, text="打开", command=lambda k=kind: self.open_directory(k)).pack(side="left", padx=3)
+            ttk.Button(row, text="修改", command=lambda k=kind: self.choose_directory(k)).pack(side="left")
+
+        ttk.Separator(body).pack(fill="x", pady=14)
+        privacy = (
+            "隐私抹除仍采用 Charlie 安全语义：实色 / 安全马赛克 / 安全模糊一旦提交，"
+            "都会直接改写底层像素并清空可恢复历史，不能撤销恢复。"
+        )
+        ttk.Label(body, text=privacy, wraplength=650, justify="left").pack(anchor="w", pady=(0, 12))
+        buttons = ttk.Frame(body)
+        buttons.pack(fill="x", side="bottom")
+        ttk.Button(buttons, text="快捷键设置", command=self.configure_hotkeys).pack(side="left")
+        ttk.Button(buttons, text="关闭", command=dialog.destroy, style="Primary.TButton").pack(side="right")
+        dialog.bind("<Escape>", lambda _event: dialog.destroy())
+
+    def reflow_original(self):
+        if self.busy:
+            return
+        current = self.original.get("1.0", "end-1c")
+        value = reflow_plain_text(current)
+        if value and value != current:
+            self.original.delete("1.0", "end")
+            self.original.insert("1.0", value)
+            self.original.edit_reset()
+            self.set_translation("")
+            self.status.set("已重新整理原文段落与硬换行。")
+        elif value:
+            self.status.set("当前原文已经不需要进一步整理。")
 
     def initialize(self):
         try:
@@ -389,8 +524,8 @@ class App:
                 self.floating.resume()
             self.recognize()
         elif image:
-            self.set_image(image.copy())
-            self.copy_image()
+            # Never copy an unredacted capture before the privacy editor.
+            # Only the finalized (possibly redacted) image may reach clipboard.
             self.editor = ScreenshotEditor(
                 self.root,
                 image,
@@ -417,6 +552,9 @@ class App:
             self.capture_auto_translate = True
             self.show_main()
             self.recognize()
+        elif action == "save":
+            self.show_main()
+            self.root.after_idle(self.save_image)
 
     def editor_cancelled(self):
         self.editor = None
@@ -424,7 +562,7 @@ class App:
             self.show_main()
         if self.floating and self.floating_enabled.get():
             self.floating.resume()
-        self.status.set("已退出标注，框选图片已自动复制，未保存文件。")
+        self.status.set("已退出标注；未将原始框选图片复制到剪贴板，也未保存文件。")
 
     def set_image(self, image):
         if image.width * image.height > 16_000_000:
@@ -435,7 +573,7 @@ class App:
         self.image = image.convert("RGB")
         image.close()
         thumb = self.image.copy()
-        thumb.thumbnail((860, 170))
+        thumb.thumbnail((1040, 125))
         self.photo = ImageTk.PhotoImage(thumb)
         thumb.close()
         self.preview.configure(image=self.photo, text="", pady=0)
@@ -463,24 +601,40 @@ class App:
         buffer = io.BytesIO()
         self.image.save(buffer, format="PNG")
         raw = buffer.getvalue()
+        smart_layout = bool(self.auto_reflow_ocr.get())
         self.original_heading.set("原文 · 正在识字，请稍候…")
-        self.status.set("正在本机识字，图片不会发送给翻译服务…")
+        self.status.set("正在本机识字并分析阅读顺序，图片不会发送给翻译服务…")
         def work():
             if not self.ocr_lock.acquire(blocking=False):
                 raise ValueError("浏览器正在识字，请稍后再试")
             try:
                 result = self.engine(raw)
-                return "\n".join(result.txts if result.txts is not None else ())
+                raw_text = "\n".join(result.txts if result.txts is not None else ())
+                text = format_ocr_result(result) if smart_layout else raw_text
+                return {"text": text, "raw": raw_text, "smart": smart_layout}
             finally:
                 self.ocr_lock.release()
         self.submit(work, self.recognized)
 
-    def recognized(self, text):
+    def recognized(self, value):
         self.original_heading.set("原文 · 可以编辑")
+        if isinstance(value, dict):
+            text = value.get("text") or ""
+            self.last_ocr_raw = value.get("raw") or text
+            smart_layout = bool(value.get("smart"))
+        else:
+            text = value or ""
+            self.last_ocr_raw = text
+            smart_layout = False
         self.original.delete("1.0", "end")
         self.original.insert("1.0", text)
+        self.original.edit_reset()
         self.set_translation("")
-        self.status.set("识字完成。可编辑原文；点击翻译只向本机发送文字。" if text else "未识别到文字，请选择清晰区域。")
+        if text:
+            note = "已按阅读顺序整理段落；" if smart_layout else ""
+            self.status.set(f"识字完成。{note}可继续编辑，翻译只向本机发送文字。")
+        else:
+            self.status.set("未识别到文字，请选择清晰区域。")
         if getattr(self, "capture_auto_translate", False):
             self.capture_auto_translate = False
             if text:
@@ -496,12 +650,15 @@ class App:
         if self.busy:
             return
         text = self.original.get("1.0", "end-1c")
-        self.status.set("正在本机翻译为中文…")
-        self.submit(lambda: self.translation.translate(text), self.translation_done)
+        if not text.strip():
+            self.status.set("请先输入或识别需要翻译的文字。")
+            return
+        self.status.set("正在本机按段落翻译为中文…")
+        self.submit(lambda: self.translation.translate_document(text), self.translation_done)
 
     def translation_done(self, text):
         self.set_translation(text)
-        self.status.set("本机翻译完成。")
+        self.status.set("本机翻译完成；长文章已按段落保留阅读结构。")
 
     def copy_text(self, widget):
         value = widget.get("1.0", "end-1c")
@@ -584,10 +741,56 @@ class App:
         self.set_translation("")
         self.status.set("已清空，不保留截图历史。")
 
+    def attach_tray(self, tray):
+        self.tray = tray
+
+    def request_close(self):
+        if self.tray:
+            self.hide_to_tray()
+        else:
+            self.close()
+
+    def hide_to_tray(self):
+        if self.closed:
+            return
+        try:
+            if self.root.state() != "withdrawn":
+                self.retention.set_ui_setting("mainWindowGeometry", self.root.winfo_geometry())
+            self.root.withdraw()
+            self.status.set("Charlie Translate 已驻留 Windows 系统托盘；双击或单击托盘图标可恢复。")
+        except tk.TclError:
+            pass
+
+    def _on_unmap(self, event):
+        if event.widget is not self.root or not self.tray or self.closed:
+            return
+        self.root.after_idle(self._finish_minimize_to_tray)
+
+    def _finish_minimize_to_tray(self):
+        if self.closed or not self.tray:
+            return
+        try:
+            if self.root.state() == "iconic":
+                self.hide_to_tray()
+        except tk.TclError:
+            pass
+
     def show_main(self):
+        if self.closed:
+            return
         self.root.deiconify()
+        try:
+            self.root.state("normal")
+        except tk.TclError:
+            pass
         self.root.lift()
         self.root.focus_force()
+
+    def toggle_floating_from_tray(self):
+        if not hasattr(self, "floating_enabled"):
+            return
+        self.floating_enabled.set(not bool(self.floating_enabled.get()))
+        self.toggle_floating()
 
     def floating_hidden(self):
         if hasattr(self, "floating_enabled"):
@@ -648,8 +851,18 @@ class App:
             self.status.set("正在退出，等待当前本机任务结束…")
             self.root.after(120, self.close)
             return
+        try:
+            if self.root.state() not in ("withdrawn", "iconic"):
+                self.retention.set_ui_setting("mainWindowGeometry", self.root.winfo_geometry())
+            self.retention.set_ui_setting("mainAlwaysOnTop", bool(self.on_top.get()))
+            self.retention.set_ui_setting("autoReflowOcr", bool(self.auto_reflow_ocr.get()))
+        except (OSError, tk.TclError):
+            pass
         self.closed = True
         self.generation += 1
+        tray, self.tray = self.tray, None
+        if tray:
+            tray.stop()
         self.hotkeys.close()
         if self.hotkey_api:
             self.hotkey_api.shutdown()
@@ -669,6 +882,11 @@ class App:
             self.image.close()
             self.image = None
         self.executor.shutdown(wait=False, cancel_futures=True)
+        try:
+            for after_id in self.root.tk.call("after", "info"):
+                self.root.after_cancel(after_id)
+        except tk.TclError:
+            pass
         self.root.destroy()
 
 
@@ -746,6 +964,41 @@ def self_test(app, fixture, output):
     app.root.after(100,step)
 
 
+def start_system_tray(app):
+    if sys.platform != "win32":
+        return None
+    try:
+        from desktop.tray import SystemTray
+        icon_path = app.retention.root / "tray.ico"
+        icon_path.parent.mkdir(parents=True, exist_ok=True)
+        icon = app.floating.icon_image(color=app.floating.color)
+        try:
+            icon.save(
+                icon_path,
+                format="ICO",
+                sizes=[(16, 16), (20, 20), (24, 24), (32, 32), (48, 48), (64, 64)],
+            )
+        finally:
+            icon.close()
+        tray = SystemTray(
+            icon_path,
+            schedule=lambda action: app.root.after(0, action),
+            capture=lambda: app.capture(False),
+            translate=lambda: app.capture(True),
+            show_main=app.show_main,
+            toggle_floating=app.toggle_floating_from_tray,
+            floating_enabled=lambda: bool(app.floating_enabled.get()),
+            exit_app=app.close,
+            tooltip="Charlie Translate · 本地截图 / OCR / 翻译",
+        )
+        if not tray.start():
+            return None
+        app.attach_tray(tray)
+        return tray
+    except (OSError, ValueError, tk.TclError):
+        return None
+
+
 def main():
     global ROOT
     test_args = None
@@ -775,7 +1028,7 @@ def main():
             user = ctypes.windll.user32
             user.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
             user.FindWindowW.restype = wintypes.HWND
-            hwnd = user.FindWindowW(None, "Charlie Translate · 本地截图识字")
+            hwnd = user.FindWindowW(None, WINDOW_TITLE)
             if hwnd:
                 user.ShowWindow(hwnd, 9)
                 user.SetForegroundWindow(hwnd)
@@ -784,7 +1037,16 @@ def main():
             return
     install_network_guard()
     root = tk.Tk()
-    app=App(root)
+    app = App(root)
+    if not test_args and sys.platform == "win32":
+        tray = start_system_tray(app)
+        if tray:
+            root.after(
+                250,
+                lambda: app.status.set(
+                    "Charlie Translate 已启用 Windows 系统托盘；最小化或关闭主窗口后仍在后台运行。"
+                ) if not app.busy else None,
+            )
     if test_args:
         self_test(app,test_args.fixture,test_args.output)
     root.mainloop()

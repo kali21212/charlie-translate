@@ -16,7 +16,7 @@ from services.ocr.server import Handler, ThreadingHTTPServer, decode_png, create
 from desktop.app import region
 from desktop.editor import apply_redaction, ScreenshotEditor
 from desktop.retention import CacheRetention
-from desktop.build import SOURCE_REPOSITORY, write_source_record
+from desktop.build import SOURCE_REPOSITORY, write_source_record, assert_clean_worktree
 from desktop.translation_bridge import (
     TranslationBridgeHandler,
     BRIDGE_HEADER,
@@ -59,6 +59,21 @@ class SecurityTests(unittest.TestCase):
             candidate.close()
         image.close()
 
+    def test_all_privacy_modes_are_independent_of_hidden_source_pixels(self):
+        region = (8, 8, 56, 56)
+        for mode in ("redact_pixel", "redact_blur", "redact_solid"):
+            with self.subTest(mode=mode):
+                white = Image.new("RGB", (64, 64), "white")
+                secret = Image.new("RGB", (64, 64), "#123456")
+                apply_redaction(white, region, mode, "#000000")
+                apply_redaction(secret, region, mode, "#000000")
+                with white.crop(region) as a, secret.crop(region) as b:
+                    self.assertEqual(a.tobytes(), b.tobytes())
+                self.assertEqual(white.getpixel((0, 0)), (255, 255, 255))
+                self.assertEqual(secret.getpixel((0, 0)), (18, 52, 86))
+                white.close()
+                secret.close()
+
 
 class EditorTests(unittest.TestCase):
     def test_reverse_drag_export_and_chinese_annotations(self):
@@ -93,8 +108,42 @@ class EditorTests(unittest.TestCase):
         self.assertEqual(editor.base.getpixel((10, 10)), (0, 0, 0))
         editor.base.close()
 
+    def test_prior_annotations_are_flattened_then_erased_and_history_cleared(self):
+        editor = ScreenshotEditor.__new__(ScreenshotEditor)
+        editor.base = Image.new("RGB", (70, 70), "white")
+        editor.annotations = [
+            {"type": "rect", "points": [(12, 12), (24, 24)],
+             "color": "#ff0000", "width": 3, "fill": True},
+            {"type": "rect", "points": [(45, 45), (58, 58)],
+             "color": "#ff0000", "width": 3, "fill": True},
+        ]
+        editor.undo_stack = [[{"type": "text", "text": "sensitive"}]]
+        editor.redo_stack = [[{"type": "text", "text": "sensitive"}]]
+        editor.color = "#000000"
+        editor.status = SimpleNamespace(set=lambda text: None)
+        editor._render = lambda *args: None
+        editor._commit_redaction(
+            {"type": "redact_solid", "points": [(8, 8), (32, 32)]}
+        )
+        self.assertEqual(editor.base.getpixel((17, 17)), (0, 0, 0))
+        self.assertEqual(editor.base.getpixel((50, 50)), (255, 0, 0))
+        self.assertEqual(editor.annotations, [])
+        self.assertEqual(editor.undo_stack, [])
+        self.assertEqual(editor.redo_stack, [])
+        exported = editor._flatten()
+        self.assertEqual(exported.getpixel((17, 17)), (0, 0, 0))
+        exported.close()
+        editor.base.close()
+
 
 class BuildProvenanceTests(unittest.TestCase):
+    def test_build_rejects_dirty_source_to_prevent_false_provenance(self):
+        with patch("desktop.build.subprocess.run", return_value=SimpleNamespace(stdout=" M desktop/app.py")):
+            with self.assertRaisesRegex(RuntimeError, "dirty worktree"):
+                assert_clean_worktree()
+        with patch("desktop.build.subprocess.run", return_value=SimpleNamespace(stdout="")):
+            assert_clean_worktree()
+
     def test_portable_source_record_pins_exact_commit(self):
         import tempfile
         expected = "a" * 40

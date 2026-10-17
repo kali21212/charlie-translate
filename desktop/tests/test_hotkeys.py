@@ -100,7 +100,7 @@ class HotkeyTests(unittest.TestCase):
         self.assertEqual(event_hotkey(SimpleNamespace(keysym='F2', state=0)), 'F2')
         self.assertEqual(event_hotkey(SimpleNamespace(keysym='q', state=0x20005)), 'Ctrl+Alt+Shift+Q')
 
-    def test_capture_copies_before_opening_editor_and_recopies_finished_image(self):
+    def test_capture_defers_copy_until_privacy_editor_finishes(self):
         app = App.__new__(App)
         app.capture_translate = False
         app.root = Mock()
@@ -112,9 +112,9 @@ class HotkeyTests(unittest.TestCase):
         app.status = Mock()
         with patch('desktop.app.ScreenshotEditor', side_effect=lambda *args, **kwargs: order.append('editor')):
             app.selected(image, (10,20))
-        self.assertEqual(order, ['image','copy','editor'])
+        self.assertEqual(order, ['editor'])
         app.editor_done(image)
-        self.assertEqual(order[-2:], ['image','copy'])
+        self.assertEqual(order, ['editor','image','copy'])
 
     def test_owned_key_recording_dialog_saves_f1_f2_and_resumes_after_cancel(self):
         root = tk.Tk()
