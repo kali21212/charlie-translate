@@ -88,6 +88,27 @@ class CompactGuiTests(unittest.TestCase):
                         self.assertGreaterEqual(g, 150)
             image.close()
 
+    def test_secure_redaction_is_one_primary_tool_with_irreversible_modes(self):
+        editor = ScreenshotEditor(
+            self.root,
+            Image.new("RGB", (220, 120), "white"),
+            lambda *_args: None,
+            lambda: None,
+        )
+        self.root.update()
+        tools = [tool for _label, tool, _action in editor.tool_actions]
+        self.assertEqual(tools.count("redact"), 1)
+        self.assertNotIn("redact_pixel", tools)
+        editor.set_tool("redact")
+        editor.set_redact_mode("redact_solid")
+        editor.press(SimpleNamespace(x=20, y=20))
+        editor.move(SimpleNamespace(x=80, y=70))
+        editor.release(SimpleNamespace(x=80, y=70))
+        self.assertEqual(editor.base.getpixel((40, 40)), (0, 0, 0))
+        self.assertEqual(editor.undo_stack, [])
+        self.assertIn("不能撤销", editor.status.get())
+        editor.cancel()
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -139,6 +160,109 @@ class FooterLayoutTests(unittest.TestCase):
             release.set()
             if app:
                 app.busy=False;app.close()
+            else:
+                try:
+                    root.destroy()
+                except tk.TclError:
+                    pass
+
+
+    def test_translation_panels_switch_between_columns_and_rows(self):
+        import time
+        from unittest.mock import patch, Mock
+        from desktop.app import App
+        from desktop.retention import CacheRetention
+        root = tk.Tk()
+        app = None
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                floating = Mock()
+                floating.default_enabled.return_value = False
+                with patch('desktop.app.CacheRetention', return_value=CacheRetention(directory)), \
+                     patch('desktop.app.FloatingButton', return_value=floating), \
+                     patch.object(App, 'initialize', return_value=Mock()):
+                    app = App(root)
+                deadline = time.monotonic() + 2
+                while app.busy and time.monotonic() < deadline:
+                    root.update()
+                    time.sleep(.02)
+                root.geometry('1120x760')
+                root.update()
+                app._layout_text_panels()
+                self.assertEqual(app.panel_layout_mode, 'columns')
+                self.assertEqual(int(app.original_card.grid_info()['row']), 0)
+                self.assertEqual(int(app.translated_card.grid_info()['column']), 1)
+
+                root.geometry('800x700')
+                for _ in range(4):
+                    root.update()
+                    time.sleep(.02)
+                app._layout_text_panels()
+                self.assertEqual(app.panel_layout_mode, 'rows')
+                self.assertEqual(int(app.translated_card.grid_info()['row']), 1)
+                self.assertEqual(str(app.original.cget('wrap')), 'word')
+                self.assertTrue(app.original_scroll.winfo_exists())
+                app.close()
+                app = None
+        finally:
+            if app:
+                app.busy = False
+                app.close()
+            else:
+                try:
+                    root.destroy()
+                except tk.TclError:
+                    pass
+
+
+    def test_close_and_minimize_move_main_window_to_tray(self):
+        import time
+        from unittest.mock import patch, Mock
+        from desktop.app import App
+        from desktop.retention import CacheRetention
+
+        root = tk.Tk()
+        app = None
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                floating = Mock()
+                floating.default_enabled.return_value = False
+                with patch('desktop.app.CacheRetention', return_value=CacheRetention(directory)), \
+                     patch('desktop.app.FloatingButton', return_value=floating), \
+                     patch.object(App, 'initialize', return_value=Mock()):
+                    app = App(root)
+                deadline = time.monotonic() + 2
+                while app.busy and time.monotonic() < deadline:
+                    root.update()
+                    time.sleep(.02)
+
+                tray = Mock()
+                app.attach_tray(tray)
+                root.deiconify()
+                root.update()
+                app.request_close()
+                root.update()
+                self.assertEqual(root.state(), 'withdrawn')
+                self.assertFalse(app.closed)
+
+                app.show_main()
+                root.update()
+                self.assertEqual(root.state(), 'normal')
+
+                root.iconify()
+                root.update()
+                app._finish_minimize_to_tray()
+                root.update()
+                self.assertEqual(root.state(), 'withdrawn')
+
+                app.tray = None
+                app.close()
+                app = None
+        finally:
+            if app:
+                app.tray = None
+                app.busy = False
+                app.close()
             else:
                 try:
                     root.destroy()

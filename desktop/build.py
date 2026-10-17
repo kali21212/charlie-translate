@@ -9,7 +9,11 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "build" / "desktop"
+# Candidate builds may use isolated paths to avoid replacing an installed/old
+# portable version. PyInstaller --noconfirm only operates inside these targets.
+OUT = Path(os.environ.get("CHARLIE_DESKTOP_DISTPATH") or ROOT / "build" / "desktop").resolve()
+WORK = Path(os.environ.get("CHARLIE_DESKTOP_WORKPATH") or ROOT / "tmp" / "desktop-pyinstaller").resolve()
+SPEC = Path(os.environ.get("CHARLIE_DESKTOP_SPECPATH") or ROOT / "tmp").resolve()
 SOURCE_REPOSITORY = "https://github.com/kali21212/charlie-translate"
 
 
@@ -48,12 +52,25 @@ def copy_checked(source, target, expected):
     shutil.copy2(source, target)
 
 
+def assert_clean_worktree():
+    """A public SOURCE.txt must never claim HEAD for uncommitted modifications."""
+    result = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=normal"],
+        cwd=ROOT, check=True, capture_output=True, text=True,
+    )
+    if result.stdout.strip():
+        raise RuntimeError("Refusing release build from dirty worktree; commit reviewed source first")
+
+
 def main():
-    # PyInstaller only cleans its dedicated build outputs, never user files.
+    assert_clean_worktree()
+    for directory in (OUT, WORK, SPEC):
+        directory.mkdir(parents=True, exist_ok=True)
+    # PyInstaller cleans only these dedicated build paths, never user files.
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
         "--onedir", "--windowed", "--name", "CharlieTranslate", "--paths", str(ROOT),
-        "--distpath", str(OUT), "--workpath", str(ROOT / "tmp" / "desktop-pyinstaller"),
-        "--specpath", str(ROOT / "tmp"), "--collect-data", "rapidocr",
+        "--distpath", str(OUT), "--workpath", str(WORK),
+        "--specpath", str(SPEC), "--collect-data", "rapidocr",
         "--add-data", str(ROOT / "services/ocr/models.json") + ";services/ocr",
         str(ROOT / "desktop/launch.py")], check=True, cwd=ROOT)
     app = OUT / "CharlieTranslate"

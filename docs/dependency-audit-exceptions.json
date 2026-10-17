@@ -2,6 +2,33 @@
   "reviewBy": "2026-11-30",
   "exceptions": [
     {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "module": "node-forge",
+      "severity": "high",
+      "scope": "dev-only",
+      "versions": ["1.4.0"],
+      "paths": [".>react-scripts>webpack-dev-server>selfsigned>node-forge"],
+      "reason": "2026-10-17 review: upstream has no fixed version; only CRA dev-server selfsigned path. Dev server is loopback-only and must never accept untrusted certificates or be publicly exposed. Revisit by 2026-11-30; no runtime exception."
+    },
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "module": "braces",
+      "severity": "high",
+      "scope": "dev-only",
+      "versions": ["3.0.3"],
+      "paths": [".>react-scripts>babel-jest>@jest/transform>micromatch>braces"],
+      "reason": "2026-10-17 review: no upstream patched release; Babel Jest transform/glob path only. Run tests on trusted repository fixtures; do not parse untrusted glob patterns. Revisit by 2026-11-30; absent from production tree."
+    },
+    {
+      "id": "GHSA-hp3w-g68c-fv3c",
+      "module": "sprintf-js",
+      "severity": "moderate",
+      "scope": "dev-only",
+      "versions": ["1.0.3"],
+      "paths": [".>react-scripts>@svgr/webpack>@svgr/plugin-svgo>svgo>js-yaml>argparse>sprintf-js"],
+      "reason": "2026-10-17 review: no fixed release; reachable only through legacy SVGR/SVGO build tooling processing trusted checked-in assets. Never build external/untrusted SVG; migrate toolchain and revisit by 2026-11-30."
+    },
+    {
       "id": "GHSA-9jgg-88mc-972h",
       "module": "webpack-dev-server",
       "severity": "moderate",

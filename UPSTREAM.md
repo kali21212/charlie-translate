@@ -33,3 +33,18 @@ Settings routing now uses React Router 7.18.4 directly (MIT LICENSE inspected fr
 Sync future upstream updates on an integration branch, then rerun test/audit/PR checks. Never push to upstream. Distributing modified binaries requires corresponding GPL source and preserved notices, including generated dependency license notices.
 
 Desktop provenance: RapidOCR https://github.com/RapidAI/RapidOCR; PaddleOCR https://github.com/PaddlePaddle/PaddleOCR; Pillow https://github.com/python-pillow/Pillow. MTranServer https://github.com/xxnuo/MTranServer (Apache-2.0); translation engine https://github.com/browsermt/bergamot-translator (MPL-2.0); Firefox model weights https://github.com/mozilla/translations (MPL-2.0, upstream explicitly states model-file licensing). Model hashes and source record IDs are in desktop/translation-records.json. Node version/source/hash is in desktop/node-runtime.json. Umi-OCR (MIT) and NormCap (GPL-3.0-or-later) were evaluated; no code was copied. PyInstaller 6.22.3 has GPL terms with a bootloader exception; preserve its packaged notices.
+
+## Desktop UX / OCR layout reuse review (2026-10-16)
+
+GitHub-first review for the Snow-inspired Desktop refresh reached **D | architecture reference only**. No Snow Shot or STranslate implementation code was copied or vendored; the desktop layout and OCR reading-order ideas were implemented independently within the existing Tk/Pillow/RapidOCR stack.
+
+- **Snow Apps / Snow Shot**: https://github.com/mg-chao/snow-apps
+  - Snow Shot is GPL-3.0-or-later. Its current codebase is C++/Qt plus Rust and is actively maintained.
+  - Reviewed its compact movable screenshot toolbar, responsive standalone translation window, auto-growing translation editors and OCR-layout behavior.
+  - Charlie does **not** vendor Snow Shot's Qt/Rust UI code, filter stack or mosaic implementation. Snow is used as a UX/architecture reference only; Charlie keeps its existing Tk/Pillow implementation and its stronger destructive privacy-redaction contract.
+- **STranslate**: https://github.com/STranslate/STranslate
+  - MIT license inspected.
+  - Snow Shot explicitly credits/adapts STranslate's Smart OCR layout. Charlie's desktop/text_layout.py is a Python implementation for RapidOCR's txts + boxes, using the same class of layout principles: visual-line grouping, column/region reading order, paragraph reconstruction, hyphen joining and Latin/CJK spacing.
+  - No STranslate runtime dependency is added. Attribution is retained here because its public Smart-layout design materially informed Charlie's implementation.
+
+The resulting Charlie implementation remains governed by this repository's GPL-3.0 distribution terms. Snow/Qt is not added as a dependency. STranslate's MIT-compatible design reference does not weaken Charlie's GPL obligations or privacy boundary.

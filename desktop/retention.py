@@ -34,6 +34,25 @@ class CacheRetention:
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return DEFAULT_RETENTION_DAYS
 
+    def get_ui_setting(self, key, default=None):
+        value = self._load_config().get("ui", {})
+        if not isinstance(value, dict):
+            return default
+        return value.get(key, default)
+
+    def set_ui_setting(self, key, value):
+        config = self._load_config()
+        ui = config.get("ui")
+        if not isinstance(ui, dict):
+            ui = {}
+        ui[key] = value
+        config["ui"] = ui
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.config_path.write_text(
+            json.dumps(config, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
     def set_days(self, days):
         days = int(days)
         if days not in ALLOWED_RETENTION_DAYS:

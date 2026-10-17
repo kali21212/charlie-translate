@@ -97,6 +97,84 @@ class LocalTranslation:
             normalized.append({"text": item["text"], "src": item.get("src") or item.get("from") or source})
         return normalized
 
+    @staticmethod
+    def _document_chunks(text, limit=3500):
+        """Split a document on paragraph/sentence boundaries without dropping text."""
+        text = str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+        if not text:
+            return []
+        paragraphs = [part.strip() for part in text.split("\n\n") if part.strip()]
+        chunks = []
+        import re
+        for paragraph in paragraphs:
+            if len(paragraph) <= limit:
+                chunks.append(paragraph)
+                continue
+            sentences = [
+                part.strip()
+                for part in re.split(r"(?<=[.!?;:。！？；：])\s+", paragraph)
+                if part.strip()
+            ] or [paragraph]
+            current = ""
+            for sentence in sentences:
+                if len(sentence) > limit:
+                    if current:
+                        chunks.append(current)
+                        current = ""
+                    for start in range(0, len(sentence), limit):
+                        chunks.append(sentence[start:start + limit])
+                    continue
+                candidate = sentence if not current else current + " " + sentence
+                if len(candidate) > limit:
+                    chunks.append(current)
+                    current = sentence
+                else:
+                    current = candidate
+            if current:
+                chunks.append(current)
+        return chunks
+
+    def translate_document(self, text, source="en", target="zh-Hans"):
+        """Translate long article text in bounded batches while preserving paragraphs."""
+        normalized = str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+        paragraphs = [part.strip() for part in normalized.split("\n\n") if part.strip()]
+        if not paragraphs:
+            raise ValueError("请填写原文")
+
+        flat = []
+        owners = []
+        for paragraph_index, paragraph in enumerate(paragraphs):
+            chunks = self._document_chunks(paragraph)
+            for chunk in chunks:
+                flat.append(chunk)
+                owners.append(paragraph_index)
+
+        translated_flat = []
+        cursor = 0
+        while cursor < len(flat):
+            batch = []
+            total = 0
+            while cursor + len(batch) < len(flat) and len(batch) < 20:
+                candidate = flat[cursor + len(batch)]
+                if batch and total + len(candidate) > 18000:
+                    break
+                batch.append(candidate)
+                total += len(candidate)
+            if len(batch) == 1:
+                translated_flat.append(
+                    self.translate_request(batch[0], source, target)["text"].strip()
+                )
+            else:
+                translated = self.translate_many(batch, source, target)
+                translated_flat.extend(item["text"].strip() for item in translated)
+            cursor += len(batch)
+
+        rebuilt = [[] for _ in paragraphs]
+        for owner, translated in zip(owners, translated_flat):
+            if translated:
+                rebuilt[owner].append(translated)
+        return "\n\n".join("".join(chunks) for chunks in rebuilt if chunks)
+
     def translate(self, text):
         return self.translate_request(text)["text"]
 
