@@ -76,6 +76,32 @@ class SecurityTests(unittest.TestCase):
 
 
 class EditorTests(unittest.TestCase):
+    def test_number_font_size_controls_exported_badge_not_line_width(self):
+        editor = ScreenshotEditor.__new__(ScreenshotEditor)
+        editor.base = Image.new("RGB", (260, 160), "white")
+        editor.annotations = [
+            {"type": "number", "p": (50, 60), "text": "1",
+             "color": "#ff0000", "width": 6, "font_size": 14},
+            {"type": "number", "p": (160, 60), "text": "2",
+             "color": "#ff0000", "width": 6, "font_size": 32},
+        ]
+        result = editor._flatten()
+        small = result.crop((8, 15, 92, 105))
+        large = result.crop((118, 15, 202, 105))
+        small_area = sum(count for count, color in small.getcolors(1000000) if color == (255, 0, 0))
+        large_area = sum(count for count, color in large.getcolors(1000000) if color == (255, 0, 0))
+        self.assertGreater(large_area, small_area * 2)
+        self.assertGreater(
+            editor._number_radius({"text": "100", "font_size": 32}),
+            editor._number_radius({"text": "1", "font_size": 32}),
+        )
+        self.assertEqual(editor._number_font_size({"font_size": "invalid"}), 22)
+        self.assertEqual(editor._hit((160 + editor._number_radius(editor.annotations[1]) - 2, 60)), 1)
+        small.close()
+        large.close()
+        result.close()
+        editor.base.close()
+
     def test_reverse_drag_export_and_chinese_annotations(self):
         editor = ScreenshotEditor.__new__(ScreenshotEditor)
         editor.base = Image.new("RGB", (200, 100), "white")

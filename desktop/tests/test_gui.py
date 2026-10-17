@@ -5,8 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from PIL import Image
-from desktop.editor import ScreenshotEditor
+from desktop.editor import ScreenshotEditor, DEFAULT_EDITOR_TOOL, DEFAULT_STROKE_WIDTH, DEFAULT_NUMBER_SIZE
 from desktop.floating import FloatingButton
+from desktop.retention import CacheRetention
 
 
 class CompactGuiTests(unittest.TestCase):
@@ -34,6 +35,65 @@ class CompactGuiTests(unittest.TestCase):
         self.assertEqual(completed[0][0].size, (420, 90))
         self.assertEqual(self.root.state(), "withdrawn")
         completed[0][0].close()
+
+    def test_editor_defaults_and_preferences_survive_new_capture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prefs = CacheRetention(tmp)
+            def make_editor():
+                return ScreenshotEditor(
+                    self.root, Image.new("RGB", (260, 150), "white"),
+                    lambda *_: None, lambda: None, settings=prefs,
+                )
+
+            editor = make_editor()
+            self.root.update()
+            self.assertEqual((editor.tool, editor.width, editor.number_size),
+                             (DEFAULT_EDITOR_TOOL, DEFAULT_STROKE_WIDTH, DEFAULT_NUMBER_SIZE))
+            self.assertEqual(editor.width_box.get(), "6")
+            editor.width_box.set("9")
+            editor._sync_width()
+            editor.set_tool("number")
+            self.root.update()
+            self.assertTrue(editor.number_options.winfo_ismapped())
+            editor.number_size_box.set("32")
+            editor._sync_number_size()
+            editor.press(SimpleNamespace(x=70, y=70))
+            self.assertEqual(editor.annotations[-1]["font_size"], 32)
+            self.assertEqual(editor.annotations[-1]["text"], "1")
+            self.assertEqual(editor._commit_number_size_entry(), "break")
+            self.assertEqual(editor._commit_width_entry(), "break")
+            editor.cancel()
+
+            # A later screenshot must restore both dimensions and last drawing tool.
+            editor = make_editor()
+            self.root.update()
+            self.assertEqual((editor.tool, editor.width, editor.number_size), ("number", 9, 32))
+            editor.set_tool("rect")
+            editor.set_tool("redact")
+            editor.cancel()
+            editor = make_editor()
+            self.assertEqual(editor.tool, "rect")  # Redact must never auto-arm.
+            self.assertEqual(editor.width, 9)
+            editor.cancel()
+            again = CacheRetention(tmp)
+            self.assertEqual(again.get_ui_setting("editorStrokeWidth"), 9)
+            self.assertEqual(again.get_ui_setting("editorNumberSize"), 32)
+            self.assertEqual(again.get_ui_setting("editorTool"), "rect")
+
+    def test_invalid_saved_settings_fall_back_to_safe_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prefs = CacheRetention(tmp)
+            prefs.set_ui_setting("editorTool", "redact")
+            prefs.set_ui_setting("editorStrokeWidth", "unbounded")
+            prefs.set_ui_setting("editorNumberSize", 2000)
+            editor = ScreenshotEditor(
+                self.root, Image.new("RGB", (180, 100), "white"),
+                lambda *_: None, lambda: None, settings=prefs,
+            )
+            self.assertEqual(editor.tool, "rect")
+            self.assertEqual(editor.width, 6)
+            self.assertEqual(editor.number_size, 22)
+            editor.cancel()
 
     def test_floating_is_movable_and_enabled_state_survives_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
