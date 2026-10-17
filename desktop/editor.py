@@ -5,7 +5,10 @@ straight into the base bitmap and creates an irreversible history barrier.
 """
 import copy
 import tkinter as tk
-from tkinter import colorchooser, simpledialog, ttk
+from tkinter import colorchooser, ttk
+from desktop.text_annotation_dialog import (
+    TextAnnotationDialog, DEFAULT_TEXT_SIZE, font_size_from, normalized_color,
+)
 from PIL import Image, ImageDraw, ImageFilter, ImageTk, ImageFont
 import os
 from pathlib import Path
@@ -79,6 +82,8 @@ class ScreenshotEditor:
         self.color = "#ff2d2d"
         self.width = self._read_int_preference("editorStrokeWidth", DEFAULT_STROKE_WIDTH, 1, 20)
         self.number_size = self._read_int_preference("editorNumberSize", DEFAULT_NUMBER_SIZE, 12, 48)
+        self.text_size = self._read_int_preference("editorTextSize", DEFAULT_TEXT_SIZE, 12, 72)
+        self.text_color = normalized_color(self._read_preference("editorTextColor", self.color), self.color)
         self.redact_mode = "redact_solid"
         self.fill = tk.BooleanVar(value=False)
         self.radius = tk.IntVar(value=12)
@@ -274,6 +279,9 @@ class ScreenshotEditor:
 
     def _color(self, color):
         self.color=color
+        # A deliberate toolbar color selection also becomes the next text
+        # default, even when chosen before switching to the text tool.
+        self.text_color = normalized_color(color, self.text_color)
 
     def _sync_options(self):
         if not hasattr(self, "draw_options"):
@@ -447,7 +455,7 @@ class ScreenshotEditor:
     def pick_color(self):
         color = colorchooser.askcolor(self.color, parent=self.window)[1]
         if color:
-            self.color = color
+            self._color(color)
 
     def _sync_width(self, _event=None):
         try:
@@ -495,14 +503,22 @@ class ScreenshotEditor:
             self._render()
             return
         if self.tool in ("text", "number"):
-            self._snapshot()
             if self.tool == "text":
-                value = simpledialog.askstring("文字标注", "输入文字：", parent=self.window)
-                if not value:
-                    self.undo_stack.pop()
+                result = TextAnnotationDialog.ask(
+                    self.window, initial_color=self.text_color, initial_size=self.text_size
+                )
+                if result is None:
                     return
-                self.annotations.append({"type":"text","p":point,"text":value,"color":self.color,"width":self.width})
+                value, size, color = result
+                self._snapshot()
+                self.annotations.append({"type": "text", "p": point, "text": value,
+                                         "color": color, "font_size": size, "width": self.width})
+                self.text_size, self.text_color = size, color
+                self.color = color
+                self._remember_preference("editorTextSize", size)
+                self._remember_preference("editorTextColor", color)
             else:
+                self._snapshot()
                 self._sync_number_size()
                 self.annotations.append({"type":"number","p":point,"text":str(self.sequence),
                                          "color":self.color,"width":self.width,
@@ -642,6 +658,11 @@ class ScreenshotEditor:
         digit_count = len(str(item.get("text", "1")))
         return max(13, round(size * (0.88 + 0.32 * max(0, digit_count - 1))))
 
+    @staticmethod
+    def _text_font_size(item):
+        legacy = 14 + int(item.get("width", 4))
+        return font_size_from(item.get("font_size", legacy), legacy)
+
     def _draw_canvas(self, item, selected=False):
         t=item["type"]; c=item.get("color",self.color); w=max(1,round(item.get("width",DEFAULT_STROKE_WIDTH)*self.scale))
         pts=[self._screen_point(p) for p in item.get("points",[])]
@@ -666,7 +687,9 @@ class ScreenshotEditor:
                 self.canvas.create_oval(p[0]-r,p[1]-r,p[0]+r,p[1]+r,fill=c,outline=c)
                 self.canvas.create_text(*p,text=item["text"],fill="white",font=("Microsoft YaHei UI",size,"bold"))
             else:
-                self.canvas.create_text(*p,anchor="nw",text=item["text"],fill=outline,font=("Microsoft YaHei UI",max(10,10+w)))
+                size = max(8, round(self._text_font_size(item) * self.scale))
+                self.canvas.create_text(*p,anchor="nw",text=item["text"],
+                                        fill=outline,font=("Microsoft YaHei UI",-size))
 
     def _flatten(self):
         out=self.base.copy()
@@ -685,7 +708,9 @@ class ScreenshotEditor:
             elif t in ("pencil","highlight") and len(pts)>1:
                 rgba=self._rgba(c,110 if t=="highlight" else 255)
                 draw.line(pts,fill=rgba,width=max(w,10 if t=="highlight" else w),joint="curve")
-            elif t=="text": draw.text(item["p"],item["text"],fill=c,font=self._font(14+w))
+            elif t=="text":
+                draw.text(item["p"], item["text"], fill=c,
+                          font=self._font(self._text_font_size(item)), anchor="lt")
             elif t=="number":
                 x,y = item["p"]
                 r = self._number_radius(item)
