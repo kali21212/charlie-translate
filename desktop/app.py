@@ -532,6 +532,7 @@ class App:
                 self.editor_done,
                 self.editor_cancelled,
                 position=position,
+                settings=getattr(self, "retention", None),
             )
         else:
             if getattr(self, "capture_main_visible", True):

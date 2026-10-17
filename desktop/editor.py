@@ -17,6 +17,13 @@ TOOLS = (
     ("隐私抹除", "redact"),
 )
 
+DEFAULT_STROKE_WIDTH = 6
+DEFAULT_NUMBER_SIZE = 22
+DEFAULT_EDITOR_TOOL = "rect"
+# Selection cannot create marks, and privacy erase must never be auto-armed
+# by a setting carried over from an earlier screenshot.
+PERSISTABLE_TOOLS = frozenset(tool for _, tool in TOOLS if tool not in {"select", "redact"})
+
 
 def apply_redaction(image, box, mode, color="#000000"):
     """Erase pixels using only synthetic, source-independent replacements.
@@ -61,12 +68,17 @@ class ScreenshotEditor:
     BORDER = 3
     BUTTON_SIZE = 30
     BUTTON_STEP = 36
-    def __init__(self, root, image, done, cancel, position=None):
+    def __init__(self, root, image, done, cancel, position=None, settings=None):
         self.root, self.done, self.cancel_cb = root, done, cancel
+        self.settings = settings
         self.base = image.convert("RGB")
         image.close()
         self.annotations, self.undo_stack, self.redo_stack = [], [], []
-        self.tool, self.color, self.width = "arrow", "#ff2d2d", 4
+        tool = self._read_preference("editorTool", DEFAULT_EDITOR_TOOL)
+        self.tool = tool if isinstance(tool, str) and tool in PERSISTABLE_TOOLS else DEFAULT_EDITOR_TOOL
+        self.color = "#ff2d2d"
+        self.width = self._read_int_preference("editorStrokeWidth", DEFAULT_STROKE_WIDTH, 1, 20)
+        self.number_size = self._read_int_preference("editorNumberSize", DEFAULT_NUMBER_SIZE, 12, 48)
         self.redact_mode = "redact_solid"
         self.fill = tk.BooleanVar(value=False)
         self.radius = tk.IntVar(value=12)
@@ -83,6 +95,30 @@ class ScreenshotEditor:
         self._build()
         self._fit()
         self._render()
+    def _read_preference(self, name, default):
+        if self.settings is None:
+            return default
+        try:
+            return self.settings.get_ui_setting(name, default)
+        except (OSError, ValueError, TypeError):
+            return default
+
+    def _read_int_preference(self, name, default, low, high):
+        try:
+            value = int(self._read_preference(name, default))
+            return value if low <= value <= high else default
+        except (TypeError, ValueError, OverflowError):
+            return default
+
+    def _remember_preference(self, name, value):
+        if self.settings is not None:
+            try:
+                self.settings.set_ui_setting(name, value)
+            except OSError:
+                # Never discard the user's current screenshot due to settings
+                # being blocked by Windows Controlled Folder Access.
+                self.status.set("当前标注可继续使用；Windows 拒绝写入设置，重启后可能不会保留。")
+
     def _build(self):
         self.status = tk.StringVar(value="普通标注可撤销；隐私遮盖一旦应用不可撤销、不可删除。")
         self.canvas = tk.Canvas(self.window, highlightthickness=self.BORDER, highlightbackground="#2563eb", highlightcolor="#2563eb", bg="white", cursor="crosshair")
@@ -140,8 +176,11 @@ class ScreenshotEditor:
             font=("Microsoft YaHei UI", 9),
         ).pack(side="left", padx=(9, 3))
         self.width_box = ttk.Spinbox(self.draw_options, from_=1, to=20, width=3, command=self._sync_width)
-        self.width_box.set("4")
+        self.width_box.set(str(self.width))
         self.width_box.pack(side="left")
+        self.width_box.bind("<KeyRelease>", self._sync_width)
+        self.width_box.bind("<FocusOut>", self._commit_width_entry)
+        self.width_box.bind("<Return>", self._commit_width_entry)
         tk.Checkbutton(
             self.draw_options, text="填充", variable=self.fill, bg="white",
             activebackground="white", font=("Microsoft YaHei UI", 9), bd=0,
@@ -151,6 +190,16 @@ class ScreenshotEditor:
             font=("Microsoft YaHei UI", 9),
         ).pack(side="left")
         ttk.Spinbox(self.draw_options, from_=0, to=80, width=3, textvariable=self.radius).pack(side="left", padx=3)
+        self.number_options = tk.Frame(self.draw_options, bg="white")
+        tk.Label(self.number_options, text="序号字号", bg="white", fg="#64748b",
+                 font=("Microsoft YaHei UI", 9)).pack(side="left", padx=(8, 3))
+        self.number_size_box = ttk.Spinbox(self.number_options, from_=12, to=48, width=3,
+                                           command=self._sync_number_size)
+        self.number_size_box.set(str(self.number_size))
+        self.number_size_box.pack(side="left")
+        self.number_size_box.bind("<KeyRelease>", self._sync_number_size)
+        self.number_size_box.bind("<FocusOut>", self._commit_number_size_entry)
+        self.number_size_box.bind("<Return>", self._commit_number_size_entry)
 
         self.redact_options = tk.Frame(self.options_host, bg="white")
         tk.Label(
@@ -230,12 +279,15 @@ class ScreenshotEditor:
         if not hasattr(self, "draw_options"):
             return
         self.draw_options.pack_forget()
+        self.number_options.pack_forget()
         self.redact_options.pack_forget()
         self.neutral_options.pack_forget()
         if self.tool == "redact":
             self.redact_options.pack(fill="x")
         elif self.tool in {"rect", "ellipse", "line", "arrow", "pencil", "highlight", "text", "number"}:
             self.draw_options.pack(fill="x")
+            if self.tool == "number":
+                self.number_options.pack(side="left")
         else:
             self.neutral_options.pack(fill="x")
 
@@ -378,7 +430,12 @@ class ScreenshotEditor:
             line((-6,-6),(6,6));line((-6,6),(6,-6))
 
     def set_tool(self, tool):
+        if tool not in {value for _label, value in TOOLS}:
+            raise ValueError("unknown annotation tool")
         self.tool = tool
+        # Persist ordinary drawing tools, not temporary selection/secure erase.
+        if tool in PERSISTABLE_TOOLS:
+            self._remember_preference("editorTool", tool)
         self.selected = None
         self._sync_options()
         self._draw_toolbar()
@@ -392,11 +449,33 @@ class ScreenshotEditor:
         if color:
             self.color = color
 
-    def _sync_width(self):
+    def _sync_width(self, _event=None):
         try:
-            self.width = max(1, min(20, int(self.width_box.get())))
-        except ValueError:
-            self.width = 4
+            new_width = int(self.width_box.get())
+        except (TypeError, ValueError):
+            return
+        if 1 <= new_width <= 20 and new_width != self.width:
+            self.width = new_width
+            self._remember_preference("editorStrokeWidth", self.width)
+
+    def _sync_number_size(self, _event=None):
+        try:
+            size = int(self.number_size_box.get())
+        except (TypeError, ValueError):
+            return
+        if 12 <= size <= 48 and size != self.number_size:
+            self.number_size = size
+            self._remember_preference("editorNumberSize", size)
+
+    def _commit_width_entry(self, _event=None):
+        self._sync_width()
+        self.width_box.set(str(self.width))
+        return "break"  # Editing a spinbox must not finish the screenshot.
+
+    def _commit_number_size_entry(self, _event=None):
+        self._sync_number_size()
+        self.number_size_box.set(str(self.number_size))
+        return "break"
 
     def _point(self, event):
         return (max(0, min(self.base.width, round((event.x-self.BORDER) / self.scale))),
@@ -424,7 +503,10 @@ class ScreenshotEditor:
                     return
                 self.annotations.append({"type":"text","p":point,"text":value,"color":self.color,"width":self.width})
             else:
-                self.annotations.append({"type":"number","p":point,"text":str(self.sequence),"color":self.color,"width":self.width})
+                self._sync_number_size()
+                self.annotations.append({"type":"number","p":point,"text":str(self.sequence),
+                                         "color":self.color,"width":self.width,
+                                         "font_size":self.number_size})
                 self.sequence += 1
             self._render()
             return
@@ -466,6 +548,12 @@ class ScreenshotEditor:
         x, y = point
         for index in range(len(self.annotations)-1, -1, -1):
             item = self.annotations[index]
+            if item["type"] == "number":
+                center = item["p"]
+                radius = self._number_radius(item) + 6
+                if (x - center[0]) ** 2 + (y - center[1]) ** 2 <= radius ** 2:
+                    return index
+                continue
             pts = item.get("points") or [item.get("p"), item.get("p")]
             xs, ys = [p[0] for p in pts if p], [p[1] for p in pts if p]
             if xs and min(xs)-12 <= x <= max(xs)+12 and min(ys)-12 <= y <= max(ys)+12:
@@ -539,8 +627,23 @@ class ScreenshotEditor:
         if transient:
             self._draw_canvas(transient, selected=False)
 
+    @staticmethod
+    def _number_font_size(item):
+        try:
+            size = int(item.get("font_size", DEFAULT_NUMBER_SIZE))
+        except (TypeError, ValueError, OverflowError):
+            size = DEFAULT_NUMBER_SIZE
+        return max(12, min(48, size))
+
+    @classmethod
+    def _number_radius(cls, item):
+        # Reserve additional space for 10, 100, ... instead of clipping digits.
+        size = cls._number_font_size(item)
+        digit_count = len(str(item.get("text", "1")))
+        return max(13, round(size * (0.88 + 0.32 * max(0, digit_count - 1))))
+
     def _draw_canvas(self, item, selected=False):
-        t=item["type"]; c=item.get("color",self.color); w=max(1,round(item.get("width",4)*self.scale))
+        t=item["type"]; c=item.get("color",self.color); w=max(1,round(item.get("width",DEFAULT_STROKE_WIDTH)*self.scale))
         pts=[self._screen_point(p) for p in item.get("points",[])]
         outline="#00a8ff" if selected else c
         if t.startswith("redact_") and len(pts)>1:
@@ -558,8 +661,10 @@ class ScreenshotEditor:
         elif t in ("text","number"):
             p=self._screen_point(item["p"])
             if t=="number":
-                r=max(10,8+w);self.canvas.create_oval(p[0]-r,p[1]-r,p[0]+r,p[1]+r,fill=c,outline=c)
-                self.canvas.create_text(*p,text=item["text"],fill="white",font=("Microsoft YaHei UI",max(10,10+w),"bold"))
+                size = max(8, round(self._number_font_size(item) * self.scale))
+                r = max(6, round(self._number_radius(item) * self.scale))
+                self.canvas.create_oval(p[0]-r,p[1]-r,p[0]+r,p[1]+r,fill=c,outline=c)
+                self.canvas.create_text(*p,text=item["text"],fill="white",font=("Microsoft YaHei UI",size,"bold"))
             else:
                 self.canvas.create_text(*p,anchor="nw",text=item["text"],fill=outline,font=("Microsoft YaHei UI",max(10,10+w)))
 
@@ -582,8 +687,11 @@ class ScreenshotEditor:
                 draw.line(pts,fill=rgba,width=max(w,10 if t=="highlight" else w),joint="curve")
             elif t=="text": draw.text(item["p"],item["text"],fill=c,font=self._font(14+w))
             elif t=="number":
-                x,y=item["p"];r=max(11,8+w);draw.ellipse((x-r,y-r,x+r,y+r),fill=c)
-                draw.text((x,y),item["text"],fill="white",font=self._font(12+w),anchor="mm")
+                x,y = item["p"]
+                r = self._number_radius(item)
+                draw.ellipse((x-r,y-r,x+r,y+r),fill=c)
+                draw.text((x,y),item["text"],fill="white",
+                          font=self._font(self._number_font_size(item)),anchor="mm")
         return out
 
     @staticmethod
