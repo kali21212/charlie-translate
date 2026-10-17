@@ -318,6 +318,20 @@ class LocalApiTests(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("CHARLIE_OCR_MODELS"),"Set CHARLIE_OCR_MODELS for real offline inference")
 class RealOcrTests(unittest.TestCase):
     def test_fixture_english_and_chinese(self):
+        # ONNX inference owns native worker threads. Keep them in a dedicated
+        # child process so Tcl windows/variables are never garbage-collected
+        # from those threads at Python test-interpreter shutdown.
+        if os.environ.get("CHARLIE_OCR_TEST_WORKER") != "1":
+            worker_env = dict(os.environ, CHARLIE_OCR_TEST_WORKER="1")
+            run = subprocess.run(
+                [sys.executable, "-m", "unittest",
+                 "desktop.tests.test_desktop.RealOcrTests.test_fixture_english_and_chinese", "-v"],
+                cwd=ROOT, env=worker_env, capture_output=True, text=True,
+                timeout=195, check=False,
+            )
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn("Ran 1 test", run.stderr)
+            return
         engine=create_engine(Path(os.environ["CHARLIE_OCR_MODELS"]))
         result=engine(str(ROOT/"testdata/screenshot/ocr-fixture.png"))
         text="".join(result.txts)
